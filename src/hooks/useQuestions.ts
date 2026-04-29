@@ -56,9 +56,10 @@ export const useQuestions = (testId: string) => {
   const createQuestion = async (question: Question) => {
     setLoading(true);
     try {
+      const { passage_text, passage_title, sub_question_label, ...dbQuestion } = question;
       const { data, error } = await supabase
         .from('questions')
-        .insert([question])
+        .insert([dbQuestion as any])
         .select()
         .single();
 
