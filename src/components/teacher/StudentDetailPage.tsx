@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { ArrowLeft, Download, User, Clock, CheckCircle, XCircle, TrendingUp, FileText } from 'lucide-react';
+import { ArrowLeft, Download, User, Clock, CheckCircle, XCircle, TrendingUp, FileText, Sparkles, RefreshCw, Target } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import jsPDF from 'jspdf';
 import sckoolLogo from '@/assets/sckool-logo.jpeg';
+import { GeminiLoader } from '@/components/ui/gemini-loader';
 
 interface StudentDetailPageProps {
   studentId: string;
