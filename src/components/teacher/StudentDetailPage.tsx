@@ -379,6 +379,90 @@ export const StudentDetailPage = ({ studentId, studentName, onBack }: StudentDet
         </Card>
       </div>
 
+      {/* AI Summary (Teacher-only) */}
+      <Card className="cloud-bubble p-6">
+        <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary via-secondary to-accent flex items-center justify-center shadow-sm">
+              <Sparkles className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold">AI Summary</h3>
+              <p className="text-xs text-muted-foreground">
+                {aiSummary?.generatedAt
+                  ? `Last refreshed ${new Date(aiSummary.generatedAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}`
+                  : 'Generate strengths, weaknesses, and intervention ideas for this student.'}
+              </p>
+            </div>
+          </div>
+          {aiSummary && (() => {
+            const canRefresh = !aiSummary.generatedAt || (Date.now() - new Date(aiSummary.generatedAt).getTime()) >= 24 * 60 * 60 * 1000;
+            return (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleGenerateAiSummary(true)}
+                disabled={!canRefresh || aiLoading}
+                className="rounded-xl gap-2"
+                title={canRefresh ? 'Refresh summary' : 'You can refresh again in 24 hours'}
+              >
+                <RefreshCw className="h-4 w-4" />
+                {canRefresh ? 'Refresh' : 'Refresh tomorrow'}
+              </Button>
+            );
+          })()}
+        </div>
+
+        {aiLoading ? (
+          <GeminiLoader size="md" message={`Analyzing ${profile?.full_name || studentName}'s performance...`} subMessage="This usually takes a few seconds." />
+        ) : !aiSummary ? (
+          <div className="text-center py-6 space-y-3">
+            <p className="text-sm text-muted-foreground">No AI summary yet for this student.</p>
+            <Button onClick={() => handleGenerateAiSummary(false)} disabled={results.length === 0} className="rounded-xl gap-2">
+              <Sparkles className="h-4 w-4" />
+              Generate AI Summary
+            </Button>
+            {results.length === 0 && (
+              <p className="text-xs text-muted-foreground">Student must complete at least one test first.</p>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="p-4 rounded-2xl bg-muted/40 border border-border/40">
+              <p className="text-sm leading-relaxed whitespace-pre-line">{aiSummary.summary}</p>
+            </div>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="p-4 rounded-2xl bg-success/10 border border-success/20">
+                <p className="text-xs uppercase tracking-wide font-semibold text-success mb-2">Strengths</p>
+                {aiSummary.strengths.length ? (
+                  <ul className="space-y-1.5">
+                    {aiSummary.strengths.map((s, i) => (
+                      <li key={i} className="text-sm flex gap-2">
+                        <CheckCircle className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
+                        <span>{s}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : <p className="text-xs text-muted-foreground">None highlighted.</p>}
+              </div>
+              <div className="p-4 rounded-2xl bg-warning/10 border border-warning/20">
+                <p className="text-xs uppercase tracking-wide font-semibold text-warning mb-2">Areas to Improve</p>
+                {aiSummary.improvements.length ? (
+                  <ul className="space-y-1.5">
+                    {aiSummary.improvements.map((s, i) => (
+                      <li key={i} className="text-sm flex gap-2">
+                        <Target className="h-4 w-4 text-warning mt-0.5 flex-shrink-0" />
+                        <span>{s}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : <p className="text-xs text-muted-foreground">None highlighted.</p>}
+              </div>
+            </div>
+          </div>
+        )}
+      </Card>
+
       {/* Score Trend */}
       <Card className="cloud-bubble p-6">
         <h3 className="text-lg font-semibold mb-4">Score Progress</h3>
