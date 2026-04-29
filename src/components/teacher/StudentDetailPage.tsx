@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { ArrowLeft, Download, User, Clock, CheckCircle, XCircle, TrendingUp, FileText } from 'lucide-react';
+import { ArrowLeft, Download, User, Clock, CheckCircle, XCircle, TrendingUp, FileText, Sparkles, RefreshCw, Target } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import jsPDF from 'jspdf';
 import sckoolLogo from '@/assets/sckool-logo.jpeg';
+import { GeminiLoader } from '@/components/ui/gemini-loader';
 
 interface StudentDetailPageProps {
   studentId: string;
@@ -34,10 +35,61 @@ export const StudentDetailPage = ({ studentId, studentName, onBack }: StudentDet
   const [results, setResults] = useState<StudentResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
+  const [aiSummary, setAiSummary] = useState<{ summary: string; strengths: string[]; improvements: string[]; generatedAt: string | null } | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
 
   useEffect(() => {
     fetchData();
+    fetchExistingSummary();
   }, [studentId]);
+
+  const fetchExistingSummary = async () => {
+    const { data } = await supabase
+      .from('student_summaries')
+      .select('summary, strengths, improvements, generated_at')
+      .eq('student_id', studentId)
+      .eq('subject', 'All Subjects')
+      .maybeSingle();
+    if (data) {
+      setAiSummary({
+        summary: data.summary,
+        strengths: Array.isArray(data.strengths) ? (data.strengths as string[]) : [],
+        improvements: Array.isArray(data.improvements) ? (data.improvements as string[]) : [],
+        generatedAt: data.generated_at,
+      });
+    }
+  };
+
+  const handleGenerateAiSummary = async (force = false) => {
+    setAiLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-insights', {
+        body: {
+          mode: 'teacher-student-summary',
+          studentId,
+          subject: 'All Subjects',
+          forceRegenerate: force,
+        },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      const insights = (data as any)?.insights;
+      const generatedAt = (data as any)?.generatedAt ?? new Date().toISOString();
+      if (insights) {
+        setAiSummary({
+          summary: insights.summary || '',
+          strengths: insights.strengths || [],
+          improvements: insights.improvements || [],
+          generatedAt,
+        });
+        toast({ title: force ? 'Refreshed' : 'AI summary ready', description: `Summary for ${profile?.full_name || studentName} generated.` });
+      }
+    } catch (err: any) {
+      toast({ title: 'Could not generate', description: err?.message || 'Failed to generate summary', variant: 'destructive' });
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -326,6 +378,90 @@ export const StudentDetailPage = ({ studentId, studentName, onBack }: StudentDet
           </div>
         </Card>
       </div>
+
+      {/* AI Summary (Teacher-only) */}
+      <Card className="cloud-bubble p-6">
+        <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary via-secondary to-accent flex items-center justify-center shadow-sm">
+              <Sparkles className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold">AI Summary</h3>
+              <p className="text-xs text-muted-foreground">
+                {aiSummary?.generatedAt
+                  ? `Last refreshed ${new Date(aiSummary.generatedAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}`
+                  : 'Generate strengths, weaknesses, and intervention ideas for this student.'}
+              </p>
+            </div>
+          </div>
+          {aiSummary && (() => {
+            const canRefresh = !aiSummary.generatedAt || (Date.now() - new Date(aiSummary.generatedAt).getTime()) >= 24 * 60 * 60 * 1000;
+            return (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleGenerateAiSummary(true)}
+                disabled={!canRefresh || aiLoading}
+                className="rounded-xl gap-2"
+                title={canRefresh ? 'Refresh summary' : 'You can refresh again in 24 hours'}
+              >
+                <RefreshCw className="h-4 w-4" />
+                {canRefresh ? 'Refresh' : 'Refresh tomorrow'}
+              </Button>
+            );
+          })()}
+        </div>
+
+        {aiLoading ? (
+          <GeminiLoader size="md" message={`Analyzing ${profile?.full_name || studentName}'s performance...`} subMessage="This usually takes a few seconds." />
+        ) : !aiSummary ? (
+          <div className="text-center py-6 space-y-3">
+            <p className="text-sm text-muted-foreground">No AI summary yet for this student.</p>
+            <Button onClick={() => handleGenerateAiSummary(false)} disabled={results.length === 0} className="rounded-xl gap-2">
+              <Sparkles className="h-4 w-4" />
+              Generate AI Summary
+            </Button>
+            {results.length === 0 && (
+              <p className="text-xs text-muted-foreground">Student must complete at least one test first.</p>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="p-4 rounded-2xl bg-muted/40 border border-border/40">
+              <p className="text-sm leading-relaxed whitespace-pre-line">{aiSummary.summary}</p>
+            </div>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="p-4 rounded-2xl bg-success/10 border border-success/20">
+                <p className="text-xs uppercase tracking-wide font-semibold text-success mb-2">Strengths</p>
+                {aiSummary.strengths.length ? (
+                  <ul className="space-y-1.5">
+                    {aiSummary.strengths.map((s, i) => (
+                      <li key={i} className="text-sm flex gap-2">
+                        <CheckCircle className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
+                        <span>{s}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : <p className="text-xs text-muted-foreground">None highlighted.</p>}
+              </div>
+              <div className="p-4 rounded-2xl bg-warning/10 border border-warning/20">
+                <p className="text-xs uppercase tracking-wide font-semibold text-warning mb-2">Areas to Improve</p>
+                {aiSummary.improvements.length ? (
+                  <ul className="space-y-1.5">
+                    {aiSummary.improvements.map((s, i) => (
+                      <li key={i} className="text-sm flex gap-2">
+                        <Target className="h-4 w-4 text-warning mt-0.5 flex-shrink-0" />
+                        <span>{s}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : <p className="text-xs text-muted-foreground">None highlighted.</p>}
+              </div>
+            </div>
+          </div>
+        )}
+      </Card>
 
       {/* Score Trend */}
       <Card className="cloud-bubble p-6">

@@ -13,22 +13,25 @@ const ProtectedRoute = ({ children, allowedRole }: ProtectedRouteProps) => {
   const [isAuthorized, setIsAuthorized] = useState(false);
 
   useEffect(() => {
+    // Still loading auth — wait
     if (loading) return;
 
+    // No user at all — go home
     if (!user) {
       navigate("/", { replace: true });
       return;
     }
 
-    // Check if user has the required role
-    // Teachers can also be admins
+    // User exists but role hasn't been fetched yet — wait, don't redirect
+    if (!role) return;
+
+    // Check if user has the required role (teachers can also be admins)
     if (allowedRole === "teacher" && (role === "teacher" || role === "admin")) {
       setIsAuthorized(true);
     } else if (allowedRole === "student" && role === "student") {
       setIsAuthorized(true);
-    } else if (role) {
-      // User is authenticated but doesn't have the right role
-      // Redirect to appropriate dashboard
+    } else {
+      // Wrong role — send to the right dashboard
       if (role === "teacher" || role === "admin") {
         navigate("/teacher/dashboard", { replace: true });
       } else if (role === "student") {
@@ -36,13 +39,10 @@ const ProtectedRoute = ({ children, allowedRole }: ProtectedRouteProps) => {
       } else {
         navigate("/", { replace: true });
       }
-    } else {
-      // No role found, redirect to home
-      navigate("/", { replace: true });
     }
   }, [user, role, loading, allowedRole, navigate]);
 
-  if (loading) {
+  if (loading || (user && !role)) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="animate-pulse text-muted-foreground">Loading...</div>

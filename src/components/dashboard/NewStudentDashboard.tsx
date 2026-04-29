@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
-import { BookOpen, TrendingUp, Award, LogOut, Code, ChartLine, History, User, ArrowLeft, CheckCircle, XCircle, Target, RotateCcw, Eye, ChevronDown, ChevronUp, Sparkles, RefreshCw } from "lucide-react";
+import { BookOpen, TrendingUp, Award, LogOut, Code, ChartLine, History, User, ArrowLeft, CheckCircle, XCircle, Target, RotateCcw, Eye, ChevronDown, ChevronUp } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
@@ -31,72 +31,13 @@ const NewStudentDashboard = () => {
   const [selectedResult, setSelectedResult] = useState<{ id: string; testId: string } | null>(null);
   const [expandedResult, setExpandedResult] = useState<string | null>(null);
   const [expandedQuestions, setExpandedQuestions] = useState<any[]>([]);
-  // AI Summary (per-subject) state
-  const [summaryOpen, setSummaryOpen] = useState(false);
-  const [summaries, setSummaries] = useState<Record<string, { summary: string; strengths: string[]; improvements: string[]; generatedAt: string | null }>>({});
-  const [summaryLoading, setSummaryLoading] = useState(false);
 
   useEffect(() => {
     if (!loading && user) {
       fetchResults();
-      fetchAllSummaries();
     }
   }, [user, loading]);
 
-  const fetchAllSummaries = async () => {
-    if (!user) return;
-    const { data } = await supabase
-      .from('student_summaries')
-      .select('subject, summary, strengths, improvements, generated_at')
-      .eq('student_id', user.id);
-    if (data) {
-      const map: Record<string, any> = {};
-      data.forEach((row: any) => {
-        map[row.subject] = {
-          summary: row.summary,
-          strengths: Array.isArray(row.strengths) ? row.strengths : [],
-          improvements: Array.isArray(row.improvements) ? row.improvements : [],
-          generatedAt: row.generated_at,
-        };
-      });
-      setSummaries(map);
-    }
-  };
-
-  const handleGenerateSummary = async (force = false) => {
-    if (!user) return;
-    setSummaryLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('generate-insights', {
-        body: {
-          mode: 'student-subject-summary',
-          subject: selectedSubject,
-          forceRegenerate: force,
-        },
-      });
-      if (error) throw error;
-      if ((data as any)?.error) throw new Error((data as any).error);
-      const insights = (data as any)?.insights;
-      const generatedAt = (data as any)?.generatedAt ?? new Date().toISOString();
-      if (insights) {
-        setSummaries(prev => ({
-          ...prev,
-          [selectedSubject]: {
-            summary: insights.summary || '',
-            strengths: insights.strengths || [],
-            improvements: insights.improvements || [],
-            generatedAt,
-          },
-        }));
-        toast({ title: force ? 'Refreshed' : 'Summary ready', description: `Your ${selectedSubject} summary is up to date.` });
-      }
-    } catch (err: any) {
-      const msg = err?.message || 'Failed to generate summary';
-      toast({ title: 'Could not generate', description: msg, variant: 'destructive' });
-    } finally {
-      setSummaryLoading(false);
-    }
-  };
 
   const fetchResults = async () => {
     if (!user) return;
@@ -613,113 +554,6 @@ const NewStudentDashboard = () => {
               </div>
             </Card>
 
-            {/* AI Summary (per-subject, refresh once per day) */}
-            {(() => {
-              const cur = summaries[selectedSubject];
-              const canRefresh = !cur?.generatedAt || (Date.now() - new Date(cur.generatedAt).getTime()) >= 24 * 60 * 60 * 1000;
-              const lastRefreshed = cur?.generatedAt
-                ? new Date(cur.generatedAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
-                : null;
-              return (
-                <Card className="cloud-bubble p-5 mb-10 ai-summary-card">
-                  <button
-                    type="button"
-                    onClick={() => setSummaryOpen(o => !o)}
-                    className="w-full flex items-center justify-between gap-3 text-left group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary via-secondary to-accent flex items-center justify-center shadow-sm">
-                        <Sparkles className="h-5 w-5 text-white" />
-                      </div>
-                      <div>
-                        <p className="font-semibold">AI Summary — {selectedSubject}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {cur ? `Last refreshed ${lastRefreshed}` : 'Strengths, weaknesses, and what to focus on next.'}
-                        </p>
-                      </div>
-                    </div>
-                    <ChevronDown
-                      className={`h-5 w-5 text-muted-foreground transition-transform duration-300 ${summaryOpen ? 'rotate-180' : ''}`}
-                    />
-                  </button>
-
-                  <div
-                    className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out ${summaryOpen ? 'grid-rows-[1fr] opacity-100 mt-4' : 'grid-rows-[0fr] opacity-0'}`}
-                  >
-                    <div className="overflow-hidden">
-                      {summaryLoading ? (
-                        <div className="py-2">
-                          <GeminiLoader
-                            size="md"
-                            message={`Analyzing your ${selectedSubject} performance...`}
-                            subMessage="This usually takes a few seconds."
-                          />
-                        </div>
-                      ) : !cur ? (
-                        <div className="text-center py-6 space-y-3">
-                          <p className="text-sm text-muted-foreground">No summary yet for {selectedSubject}.</p>
-                          <Button onClick={() => handleGenerateSummary(false)} className="rounded-xl gap-2">
-                            <Sparkles className="h-4 w-4" />
-                            Generate AI Summary
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="space-y-4 ai-summary-content">
-                          <div className="p-4 rounded-2xl bg-muted/40 border border-border/40">
-                            <p className="text-sm leading-relaxed text-foreground whitespace-pre-line">{cur.summary}</p>
-                          </div>
-                          <div className="grid md:grid-cols-2 gap-4">
-                            <div className="p-4 rounded-2xl bg-success/10 border border-success/20">
-                              <p className="text-xs uppercase tracking-wide font-semibold text-success mb-2">Strengths</p>
-                              {cur.strengths.length ? (
-                                <ul className="space-y-1.5">
-                                  {cur.strengths.map((s, i) => (
-                                    <li key={i} className="text-sm flex gap-2">
-                                      <CheckCircle className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
-                                      <span>{s}</span>
-                                    </li>
-                                  ))}
-                                </ul>
-                              ) : (
-                                <p className="text-xs text-muted-foreground">None highlighted.</p>
-                              )}
-                            </div>
-                            <div className="p-4 rounded-2xl bg-warning/10 border border-warning/20">
-                              <p className="text-xs uppercase tracking-wide font-semibold text-warning mb-2">Improve</p>
-                              {cur.improvements.length ? (
-                                <ul className="space-y-1.5">
-                                  {cur.improvements.map((s, i) => (
-                                    <li key={i} className="text-sm flex gap-2">
-                                      <Target className="h-4 w-4 text-warning mt-0.5 flex-shrink-0" />
-                                      <span>{s}</span>
-                                    </li>
-                                  ))}
-                                </ul>
-                              ) : (
-                                <p className="text-xs text-muted-foreground">None highlighted.</p>
-                              )}
-                            </div>
-                          </div>
-                          <div className="flex justify-end">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleGenerateSummary(true)}
-                              disabled={!canRefresh || summaryLoading}
-                              className="rounded-xl gap-2"
-                              title={canRefresh ? 'Refresh summary' : 'You can refresh again in 24 hours'}
-                            >
-                              <RefreshCw className="h-4 w-4" />
-                              {canRefresh ? 'Refresh' : 'Refresh available tomorrow'}
-                            </Button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </Card>
-              );
-            })()}
 
             {/* Navigation Bubbles */}
             <div className="grid grid-cols-2 gap-6">
