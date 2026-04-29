@@ -86,9 +86,10 @@ export const useQuestions = (testId: string) => {
   const updateQuestion = async (id: string, updates: Partial<Question>) => {
     setLoading(true);
     try {
+      const { passage_text, passage_title, sub_question_label, ...dbUpdates } = updates;
       const { data, error } = await supabase
         .from('questions')
-        .update(updates)
+        .update(dbUpdates as any)
         .eq('id', id)
         .select()
         .single();
