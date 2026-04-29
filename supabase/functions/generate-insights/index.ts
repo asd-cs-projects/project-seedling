@@ -357,10 +357,26 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // Helper: check if a user has a specific role
+    const callerHasRole = async (role: 'teacher' | 'admin') => {
+      const { data } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', callerId)
+        .eq('role', role)
+        .maybeSingle();
+      return !!data;
+    };
+
     // ====== Authorization: caller must own the requested resource ======
     if (mode === 'student-subject-summary') {
       // caller must be the student themselves (the row will be keyed to caller id)
       // no extra check required — we always operate on callerId below.
+    } else if (mode === 'teacher-student-summary') {
+      // Only teachers/admins may generate summaries for other students.
+      const isTeacher = (await callerHasRole('teacher')) || (await callerHasRole('admin'));
+      if (!isTeacher) throw new HttpError(403, 'Only teachers can generate student summaries');
+      if (!body?.studentId) throw new HttpError(400, 'studentId is required');
     } else if (mode === 'explanations' || isClassSummary) {
       if (!testId) throw new HttpError(400, 'testId is required');
       const { data: testRow, error: tErr } = await supabase
