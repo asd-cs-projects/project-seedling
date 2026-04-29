@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
-import { BookOpen, TrendingUp, Award, LogOut, Code, ChartLine, History, User, ArrowLeft, CheckCircle, XCircle, Target, RotateCcw, Eye, ChevronDown, ChevronUp, Sparkles, RefreshCw } from "lucide-react";
+import { BookOpen, TrendingUp, Award, LogOut, Code, ChartLine, History, User, ArrowLeft, CheckCircle, XCircle, Target, RotateCcw, Eye, ChevronDown, ChevronUp } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
