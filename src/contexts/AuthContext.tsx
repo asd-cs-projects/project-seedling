@@ -108,54 +108,34 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signUp = async (email: string, password: string, userData: any) => {
     const redirectUrl = `${window.location.origin}/`;
-    
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: redirectUrl,
         data: {
-          full_name: userData.fullName
-        }
-      }
+          full_name: userData.fullName,
+          student_id: userData.studentId ?? '',
+          grade: userData.grade ?? '',
+          class: userData.class ?? '',
+          gender: userData.gender ?? '',
+          age: userData.age ? String(userData.age) : '',
+          subject: userData.subject ?? '',
+          role: userData.role ?? 'student',
+        },
+      },
     });
 
     if (!error && data.user) {
-      // Wait a moment for the trigger to create the profile
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Try to update the profile (created by trigger), or insert if it doesn't exist
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .upsert({
-          user_id: data.user.id,
-          full_name: userData.fullName,
-          student_id: userData.studentId,
-          grade: userData.grade,
-          class: userData.class,
-          gender: userData.gender,
-          age: userData.age ? parseInt(userData.age) : null,
-          subject: userData.subject
-        }, { onConflict: 'user_id' });
-
-      if (profileError) {
-        console.error('Profile upsert error:', profileError);
-      }
-
-      // Add to user_roles table
-      const { error: roleError } = await supabase
-        .from('user_roles')
-        .insert({
-          user_id: data.user.id,
-          role: userData.role
-        });
-
-      if (roleError) {
-        console.error('Role insert error:', roleError);
-      }
-
-      // Set the role immediately for navigation
+      // Trigger handle_new_user creates profile + role server-side.
+      // Set role immediately for navigation.
       setRole(userData.role as AppRole);
+
+      // If session exists (auto-confirm enabled), refresh local state.
+      if (data.session) {
+        await fetchUserData(data.user.id);
+      }
     }
 
     return { error };
