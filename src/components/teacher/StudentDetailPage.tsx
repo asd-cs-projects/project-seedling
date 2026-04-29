@@ -35,10 +35,61 @@ export const StudentDetailPage = ({ studentId, studentName, onBack }: StudentDet
   const [results, setResults] = useState<StudentResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
+  const [aiSummary, setAiSummary] = useState<{ summary: string; strengths: string[]; improvements: string[]; generatedAt: string | null } | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
 
   useEffect(() => {
     fetchData();
+    fetchExistingSummary();
   }, [studentId]);
+
+  const fetchExistingSummary = async () => {
+    const { data } = await supabase
+      .from('student_summaries')
+      .select('summary, strengths, improvements, generated_at')
+      .eq('student_id', studentId)
+      .eq('subject', 'All Subjects')
+      .maybeSingle();
+    if (data) {
+      setAiSummary({
+        summary: data.summary,
+        strengths: Array.isArray(data.strengths) ? (data.strengths as string[]) : [],
+        improvements: Array.isArray(data.improvements) ? (data.improvements as string[]) : [],
+        generatedAt: data.generated_at,
+      });
+    }
+  };
+
+  const handleGenerateAiSummary = async (force = false) => {
+    setAiLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-insights', {
+        body: {
+          mode: 'teacher-student-summary',
+          studentId,
+          subject: 'All Subjects',
+          forceRegenerate: force,
+        },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      const insights = (data as any)?.insights;
+      const generatedAt = (data as any)?.generatedAt ?? new Date().toISOString();
+      if (insights) {
+        setAiSummary({
+          summary: insights.summary || '',
+          strengths: insights.strengths || [],
+          improvements: insights.improvements || [],
+          generatedAt,
+        });
+        toast({ title: force ? 'Refreshed' : 'AI summary ready', description: `Summary for ${profile?.full_name || studentName} generated.` });
+      }
+    } catch (err: any) {
+      toast({ title: 'Could not generate', description: err?.message || 'Failed to generate summary', variant: 'destructive' });
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   const fetchData = async () => {
     setLoading(true);
