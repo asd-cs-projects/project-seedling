@@ -521,7 +521,115 @@ ${perTest.join('\n')}`;
       });
     }
 
-    // ============ MODE: explanations ============
+    // ============ MODE: teacher-generated student summary (across all subjects) ============
+    if (mode === 'teacher-student-summary') {
+      const targetStudentId = String(body.studentId);
+      const subjectName = String(subject ?? 'All Subjects').trim() || 'All Subjects';
+
+      const { data: existingRow } = await supabase
+        .from('student_summaries')
+        .select('summary, strengths, improvements, generated_at')
+        .eq('student_id', targetStudentId)
+        .eq('subject', subjectName)
+        .maybeSingle();
+
+      if (existingRow?.summary && !forceRegenerate) {
+        return jsonResponse({
+          success: true, cached: true,
+          insights: {
+            summary: existingRow.summary,
+            strengths: normalizeStringArray(existingRow.strengths),
+            improvements: normalizeStringArray(existingRow.improvements),
+          },
+          generatedAt: existingRow.generated_at,
+        });
+      }
+      if (existingRow?.summary && forceRegenerate && isWithin24h(existingRow.generated_at as string)) {
+        throw new HttpError(429, 'Summary was already regenerated today. Try again tomorrow.');
+      }
+
+      let resQuery = supabase
+        .from('test_results')
+        .select('id, score, correct_answers, wrong_answers, total_questions, difficulty_level, ai_topic_tags, completed_at, tests!inner(title, subject)')
+        .eq('student_id', targetStudentId)
+        .eq('is_retake', false)
+        .order('completed_at', { ascending: false })
+        .limit(40);
+      if (subjectName !== 'All Subjects') {
+        resQuery = resQuery.eq('tests.subject', subjectName);
+      }
+      const { data: resultsRows, error: resErr } = await resQuery;
+      if (resErr) throw resErr;
+      const results = resultsRows ?? [];
+
+      if (results.length === 0) {
+        throw new HttpError(400, `This student has no completed ${subjectName} tests yet.`);
+      }
+
+      const totalTests = results.length;
+      const avgScore = Math.round(results.reduce((s, r: any) => s + Number(r.score ?? 0), 0) / totalTests);
+      const totalQ = results.reduce((s, r: any) => s + Number(r.total_questions ?? 0), 0);
+      const totalCorrect = results.reduce((s, r: any) => s + Number(r.correct_answers ?? 0), 0);
+      const overallAcc = totalQ > 0 ? Math.round((totalCorrect / totalQ) * 100) : 0;
+
+      const tagFreq: Record<string, number> = {};
+      results.forEach((r: any) => {
+        normalizeStringArray(r.ai_topic_tags).forEach((t) => {
+          const key = t.replace(/^#/, '').trim();
+          if (key) tagFreq[key] = (tagFreq[key] || 0) + 1;
+        });
+      });
+      const topTags = Object.entries(tagFreq).sort((a, b) => b[1] - a[1]).slice(0, 12)
+        .map(([t, n]) => `${t} (x${n})`);
+
+      const perTest = results.slice(0, 20).map((r: any) => {
+        const acc = r.total_questions > 0 ? Math.round(((r.correct_answers ?? 0) / r.total_questions) * 100) : 0;
+        return `${(r.tests?.title || 'Test').slice(0, 40)} [${r.tests?.subject || '-'} | ${r.difficulty_level || '-'}] score=${r.score}% acc=${acc}% (${r.correct_answers}/${r.total_questions})`;
+      });
+
+      const subjectLabel = subjectName === 'All Subjects' ? 'across all subjects' : `in ${subjectName}`;
+      const prompt = `You are an instructional coach writing a private summary for a TEACHER about one of their students ${subjectLabel}. The student has taken ${totalTests} test(s).
+
+Return ONLY valid JSON:
+{"summary":"4-5 sentences. Address the teacher (e.g., 'This student...'). State overall standing (avg ${avgScore}%, accuracy ${overallAcc}%), clearest strengths, clearest weaknesses, and one concrete intervention or focus area for the teacher to consider.","strengths":["3-5 specific strong topics or sub-skills, name precisely"],"improvements":["3-5 specific weak topics or sub-skills with what to reteach or practice"]}
+
+Rules:
+- Strengths/improvements MUST name concrete topics/sub-skills.
+- Cite frequency or scores when possible.
+- Tone: professional, helpful to a teacher.
+
+Stats: avgScore=${avgScore}%, overallAcc=${overallAcc}%, tests=${totalTests}
+Top topic tags: ${topTags.join(' | ') || 'none yet'}
+Per-test:
+${perTest.join('\n')}`;
+
+      const resp = await callGemini(prompt, geminiApiKey, 2048);
+      const parsed = parseGeminiJson(resp);
+      const summary = String(parsed.summary ?? '').trim();
+      const strengths = normalizeStringArray(parsed.strengths);
+      const improvements = normalizeStringArray(parsed.improvements);
+
+      if (!summary) throw new HttpError(502, 'AI did not return a summary');
+
+      const { error: upErr } = await supabase
+        .from('student_summaries')
+        .upsert({
+          student_id: targetStudentId,
+          subject: subjectName,
+          summary,
+          strengths,
+          improvements,
+          generated_at: new Date().toISOString(),
+        }, { onConflict: 'student_id,subject' });
+      if (upErr) throw upErr;
+
+      return jsonResponse({
+        success: true, cached: false,
+        insights: { summary, strengths, improvements },
+        generatedAt: new Date().toISOString(),
+      });
+    }
+
     if (mode === 'explanations') {
       if (!testId) throw new HttpError(400, 'testId is required');
       const { data: questions, error: qErr } = await supabase
