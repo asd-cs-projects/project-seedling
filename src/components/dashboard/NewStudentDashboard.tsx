@@ -32,6 +32,13 @@ const NewStudentDashboard = () => {
   const [expandedResult, setExpandedResult] = useState<string | null>(null);
   const [expandedQuestions, setExpandedQuestions] = useState<any[]>([]);
 
+  useEffect(() => {
+    if (!loading && user) {
+      fetchResults();
+    }
+  }, [user, loading]);
+
+
   const fetchResults = async () => {
     if (!user) return;
     const { data, error } = await supabase.from('test_results').select(`
