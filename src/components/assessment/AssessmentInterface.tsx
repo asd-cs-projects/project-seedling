@@ -588,6 +588,12 @@ const AssessmentInterface = () => {
       .eq('test_id', testId);
 
     const passageMap = new Map(passagesData?.map(p => [p.id, p]) || []);
+    setPassageMapCache(passageMap);
+
+    // Cache full pool for adaptive routing.
+    const { data: fullCache } = await (supabase as any)
+      .rpc('get_assessment_questions', { _test_id: testId });
+    setAllQuestionsCache((fullCache as any[]) || []);
 
     if (allQuestions && allQuestions.length > 0) {
       const mapped = allQuestions.map((q: any) => ({
@@ -597,7 +603,21 @@ const AssessmentInterface = () => {
         passage_text: q.passage_id ? passageMap.get(q.passage_id)?.content : null,
         passage_title: q.passage_id ? passageMap.get(q.passage_id)?.title : null,
       })) as Question[];
-      setQuestions(groupAndShuffleQuestions(mapped));
+
+      if (testData?.adaptive_mode) {
+        const firstGroup = pickFirstGroup(mapped, new Set());
+        if (firstGroup.length > 0) {
+          setQuestions(firstGroup);
+          const newUsed = new Set<string>();
+          const pid = firstGroup[0].passage_id;
+          if (pid) newUsed.add(pid);
+          setUsedPassageIds(newUsed);
+        } else {
+          setQuestions(groupAndShuffleQuestions(mapped));
+        }
+      } else {
+        setQuestions(groupAndShuffleQuestions(mapped));
+      }
     }
     setLoading(false);
   };
