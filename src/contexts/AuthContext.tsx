@@ -148,6 +148,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     });
 
     if (!error && data.user) {
+      // Block resolution until role is loaded so caller can route correctly
       await fetchUserData(data.user.id);
     }
 
