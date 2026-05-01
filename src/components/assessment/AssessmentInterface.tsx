@@ -334,7 +334,7 @@ const AssessmentInterface = () => {
       }
       
       let mainQs = mappedQuestions.filter(q => q.difficulty === level);
-      
+
       if (mainQs.length === 0) {
         for (const diff of nonPracticeDiffs) {
           mainQs = mappedQuestions.filter(q => q.difficulty === diff);
@@ -343,16 +343,172 @@ const AssessmentInterface = () => {
       }
 
       if (mainQs.length > 0) {
-        setQuestions(groupAndShuffleQuestions(mainQs));
+        if (testData?.adaptive_mode) {
+          // Adaptive: load only the FIRST group at the entry tier.
+          const firstGroup = pickFirstGroup(mainQs, new Set());
+          if (firstGroup.length > 0) {
+            setQuestions(firstGroup);
+            const newUsed = new Set<string>();
+            const pid = firstGroup[0].passage_id;
+            if (pid) newUsed.add(pid);
+            setUsedPassageIds(newUsed);
+          } else {
+            setQuestions(groupAndShuffleQuestions(mainQs));
+          }
+        } else {
+          setQuestions(groupAndShuffleQuestions(mainQs));
+        }
       } else {
         toast({ title: "Error", description: "No questions available", variant: "destructive" });
       }
-      
+
       setLoading(false);
     } catch (error: any) {
       toast({ title: "Error", description: error.message || "Failed to load questions", variant: "destructive" });
       setLoading(false);
     }
+  };
+
+  // Helpers for adaptive module mode ----------------------------------------
+  const DIFF_ORDER: ("basic" | "easy" | "medium" | "hard")[] = ["basic", "easy", "medium", "hard"];
+
+  const pickFirstGroup = (pool: Question[], usedPids: Set<string>): Question[] => {
+    // Group by passage_id; pick a random unused group; fallback to standalone.
+    const groups = new Map<string, Question[]>();
+    const standalone: Question[] = [];
+    pool.forEach(q => {
+      if (q.passage_id) {
+        if (usedPids.has(q.passage_id)) return;
+        const g = groups.get(q.passage_id) || [];
+        g.push(q);
+        groups.set(q.passage_id, g);
+      } else {
+        standalone.push(q);
+      }
+    });
+    const groupArr = Array.from(groups.values());
+    if (groupArr.length > 0) {
+      const chosen = groupArr[Math.floor(Math.random() * groupArr.length)];
+      chosen.sort((a, b) => a.order_index - b.order_index);
+      return chosen;
+    }
+    if (standalone.length > 0) {
+      // Treat single standalone question as a one-question "group"
+      return [standalone[Math.floor(Math.random() * standalone.length)]];
+    }
+    return [];
+  };
+
+  const computeGroupScore = (groupQs: Question[], answersMap: Record<string, string>): Promise<number> => {
+    // Score the just-finished group server-side via RPC by passing only their ids' answers.
+    // Simpler: call RPC with the group's difficulty, but that may include OTHER questions.
+    // Instead: since RPC scores by difficulty, and a group is single-difficulty, we use a
+    // local subset: compute via a separate RPC call filtering to the group ids isn't supported,
+    // so we approximate by scoring all answers at that difficulty and subset to this group.
+    // For accuracy, we re-call score_submission with only this group's answers.
+    const subAnswers: Record<string, string> = {};
+    groupQs.forEach(q => {
+      const a = answersMap[q.id];
+      if (a) subAnswers[q.id] = a;
+    });
+    return (supabase as any)
+      .rpc('score_submission', {
+        _test_id: testId,
+        _difficulty: groupQs[0]?.difficulty ?? null,
+        _answers: subAnswers,
+      })
+      .then((res: any) => {
+        const row = Array.isArray(res?.data) ? res.data[0] : res?.data;
+        // RPC counts ALL questions at that difficulty; we want correct/group size.
+        // Recompute: the subAnswers only contain group ids, so RPC will mark
+        // un-answered (not in subAnswers) as wrong — that includes other groups' questions.
+        // Workaround: count locally using just the group size.
+        const correct = row?.correct_answers ?? 0;
+        const groupSize = groupQs.length;
+        return groupSize > 0 ? Math.round((Math.min(correct, groupSize) / groupSize) * 100) : 0;
+      })
+      .catch(() => 0);
+  };
+
+  const shiftLevel = (current: string, score: number): string => {
+    // ≥80 → +2, 50–79 → +1, 20–49 → -1, <20 → -2
+    let delta = 0;
+    if (score >= 80) delta = 2;
+    else if (score >= 50) delta = 1;
+    else if (score >= 20) delta = -1;
+    else delta = -2;
+    const idx = DIFF_ORDER.indexOf(current as any);
+    if (idx < 0) return current;
+    const next = Math.max(0, Math.min(DIFF_ORDER.length - 1, idx + delta));
+    return DIFF_ORDER[next];
+  };
+
+  const findClosestAvailableLevel = (target: string, availableDiffs: string[]): string => {
+    if (availableDiffs.includes(target)) return target;
+    const targetIdx = DIFF_ORDER.indexOf(target as any);
+    let best = availableDiffs[0];
+    let bestDist = Infinity;
+    for (const d of availableDiffs) {
+      const idx = DIFF_ORDER.indexOf(d as any);
+      if (idx < 0) continue;
+      const dist = Math.abs(idx - targetIdx);
+      if (dist < bestDist) { bestDist = dist; best = d; }
+    }
+    return best;
+  };
+
+  const loadNextAdaptiveGroup = async (justFinishedGroup: Question[]) => {
+    const groupScore = await computeGroupScore(justFinishedGroup, answers);
+    const currentLevel = (justFinishedGroup[0]?.difficulty as string) || (assignedLevel as string) || 'easy';
+    const targetLevel = shiftLevel(currentLevel, groupScore);
+
+    const nonPracticeDiffs = [...new Set(allQuestionsCache.map((q: any) => q.difficulty))].filter(d => d !== 'practice') as string[];
+    const finalLevel = findClosestAvailableLevel(targetLevel, nonPracticeDiffs);
+
+    const newAttempted = groupsAttempted + 1;
+    setGroupsAttempted(newAttempted);
+
+    // End condition
+    if (groupsPerStudent > 0 && newAttempted >= groupsPerStudent) {
+      handleSubmit();
+      return;
+    }
+
+    // Build pool from cache at finalLevel, excluding used passages
+    const newUsed = new Set(usedPassageIds);
+    const justPid = justFinishedGroup[0]?.passage_id;
+    if (justPid) newUsed.add(justPid);
+
+    const pool: Question[] = allQuestionsCache
+      .filter((q: any) => q.difficulty === finalLevel)
+      .map((q: any) => ({
+        ...q,
+        correct_answer: '',
+        options: ((q.options as string[] | null) || []).slice(0, 4),
+        passage_text: q.passage_id ? passageMapCache.get(q.passage_id)?.content : null,
+        passage_title: q.passage_id ? passageMapCache.get(q.passage_id)?.title : null,
+      }));
+
+    let nextGroup = pickFirstGroup(pool, newUsed);
+    if (nextGroup.length === 0) {
+      // No more groups at any level — submit
+      handleSubmit();
+      return;
+    }
+
+    const nextPid = nextGroup[0].passage_id;
+    if (nextPid) newUsed.add(nextPid);
+    setUsedPassageIds(newUsed);
+    setAssignedLevel(finalLevel as any);
+    setQuestions(nextGroup);
+    setCurrentQuestionIndex(0);
+    setSelectedAnswer(getStoredAnswer(answers, nextGroup[0], 0) || '');
+
+    toast({
+      title: `Group ${newAttempted} complete`,
+      description: `Moving to ${finalLevel.toUpperCase()} tier.`,
+      duration: 2500,
+    });
   };
 
   // Practice score is computed server-side too — we no longer have correct_answer client-side
