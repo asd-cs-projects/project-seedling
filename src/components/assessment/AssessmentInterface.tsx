@@ -152,7 +152,8 @@ const AssessmentInterface = () => {
         setTimeRemaining((prev) => {
           if (prev <= 1) {
             clearInterval(timer);
-            handleSubmit();
+            // Auto-submit and tag the attempt as Timed Out
+            handleSubmit('timed_out');
             return 0;
           }
           return prev - 1;
