@@ -49,6 +49,14 @@ const AssessmentInterface = () => {
   const [fiveMinWarningShown, setFiveMinWarningShown] = useState(false);
   const [teacherEndedTest, setTeacherEndedTest] = useState(false);
 
+  // Adaptive Module Mode state
+  const [adaptiveMode, setAdaptiveMode] = useState(false);
+  const [groupsPerStudent, setGroupsPerStudent] = useState<number>(0);
+  const [groupsAttempted, setGroupsAttempted] = useState(0);
+  const [usedPassageIds, setUsedPassageIds] = useState<Set<string>>(new Set());
+  const [allQuestionsCache, setAllQuestionsCache] = useState<any[]>([]);
+  const [passageMapCache, setPassageMapCache] = useState<Map<string, any>>(new Map());
+
   // Auto-save state to database
   const saveSession = useCallback(async () => {
     if (!user || !testId) return;
