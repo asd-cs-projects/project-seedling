@@ -604,8 +604,10 @@ const AssessmentInterface = () => {
     localStorage.removeItem('currentTest');
 
     toast({
-      title: "Test Submitted!",
-      description: `Your score: ${finalScore}%`,
+      title: reason === 'timed_out' ? "Time's Up!" : "Test Submitted!",
+      description: reason === 'timed_out'
+        ? `Time ran out — your test was auto-submitted. Score: ${finalScore}%`
+        : `Your score: ${finalScore}%`,
       duration: 5000,
     });
 
