@@ -530,7 +530,8 @@ const AssessmentInterface = () => {
               time_spent: timeSpent,
               answers,
               is_retake: true,
-            })
+              status: reason,
+            } as any)
             .select()
             .single();
 
