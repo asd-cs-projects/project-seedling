@@ -19,6 +19,7 @@ interface Passage {
   title: string | null;
   content: string;
   passage_type: string | null;
+  module_name?: string | null;
 }
 
 interface QuestionBuilderProps {
