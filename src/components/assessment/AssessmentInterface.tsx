@@ -1017,7 +1017,13 @@ const AssessmentInterface = () => {
                 onClick={handleNextQuestion}
                 className="nav-btn-next"
               >
-                {isLastQuestion ? (practiceComplete ? 'Submit Test' : 'Complete Practice') : 'Next'}
+                {isLastQuestion
+                  ? (!practiceComplete
+                      ? 'Complete Practice'
+                      : (adaptiveMode && (groupsPerStudent === 0 || groupsAttempted + 1 < groupsPerStudent))
+                          ? 'Next Group'
+                          : 'Submit Test')
+                  : 'Next'}
                 <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
             </div>
