@@ -52,6 +52,8 @@ export const QuestionBuilder = ({ testId, onQuestionsChange }: QuestionBuilderPr
   const [newPassageCode, setNewPassageCode] = useState('');
   const [newPassageTitle, setNewPassageTitle] = useState('');
   const [newPassageContent, setNewPassageContent] = useState('');
+  const [newModuleName, setNewModuleName] = useState('');
+  const [groupKind, setGroupKind] = useState<'passage' | 'module'>('passage');
 
   useEffect(() => {
     loadQuestions();
