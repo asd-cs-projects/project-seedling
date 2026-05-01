@@ -16,30 +16,33 @@ export type Database = {
     Tables: {
       passages: {
         Row: {
-          content: string
+          content: string | null
           created_at: string | null
           id: string
           media_url: string | null
+          module_name: string | null
           passage_code: string
           passage_type: string | null
           test_id: string
           title: string | null
         }
         Insert: {
-          content: string
+          content?: string | null
           created_at?: string | null
           id?: string
           media_url?: string | null
+          module_name?: string | null
           passage_code: string
           passage_type?: string | null
           test_id: string
           title?: string | null
         }
         Update: {
-          content?: string
+          content?: string | null
           created_at?: string | null
           id?: string
           media_url?: string | null
+          module_name?: string | null
           passage_code?: string
           passage_type?: string | null
           test_id?: string
@@ -251,6 +254,7 @@ export type Database = {
           is_retake: boolean
           practice_score: number | null
           score: number | null
+          status: string
           student_id: string
           test_id: string
           time_spent: number | null
@@ -270,6 +274,7 @@ export type Database = {
           is_retake?: boolean
           practice_score?: number | null
           score?: number | null
+          status?: string
           student_id: string
           test_id: string
           time_spent?: number | null
@@ -289,6 +294,7 @@ export type Database = {
           is_retake?: boolean
           practice_score?: number | null
           score?: number | null
+          status?: string
           student_id?: string
           test_id?: string
           time_spent?: number | null
@@ -357,9 +363,11 @@ export type Database = {
       }
       tests: {
         Row: {
+          adaptive_mode: boolean
           created_at: string | null
           description: string | null
           duration_minutes: number | null
+          groups_per_student: number | null
           id: string
           is_active: boolean | null
           subject: string
@@ -371,9 +379,11 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          adaptive_mode?: boolean
           created_at?: string | null
           description?: string | null
           duration_minutes?: number | null
+          groups_per_student?: number | null
           id?: string
           is_active?: boolean | null
           subject: string
@@ -385,9 +395,11 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          adaptive_mode?: boolean
           created_at?: string | null
           description?: string | null
           duration_minutes?: number | null
+          groups_per_student?: number | null
           id?: string
           is_active?: boolean | null
           subject?: string
