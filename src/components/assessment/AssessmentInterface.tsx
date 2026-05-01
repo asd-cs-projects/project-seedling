@@ -472,7 +472,7 @@ const AssessmentInterface = () => {
     }
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (reason: 'completed' | 'timed_out' = 'completed') => {
     if (!practiceComplete) {
       const score = await calculatePracticeScore();
       const { data: allQs } = await (supabase as any)
