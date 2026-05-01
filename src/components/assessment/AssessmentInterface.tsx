@@ -890,7 +890,11 @@ const AssessmentInterface = () => {
           {/* Test Info — phase + difficulty badge */}
           <div className="text-right flex flex-col items-end gap-1.5">
             <p className="text-xs text-muted-foreground">
-              {practiceComplete ? 'Main Test' : 'Practice Round'}
+              {practiceComplete
+                ? (adaptiveMode && groupsPerStudent > 0
+                    ? `Adaptive · Group ${groupsAttempted + 1} of ${groupsPerStudent}`
+                    : 'Main Test')
+                : 'Practice Round'}
             </p>
             {practiceComplete && assignedLevel ? (
               <span
