@@ -624,9 +624,12 @@ const AssessmentInterface = () => {
         const score = await calculatePracticeScore();
         const { data: allQuestions } = await (supabase as any)
           .rpc('get_assessment_questions', { _test_id: testId });
-        
+
         const availableDifficulties = [...new Set(((allQuestions as any[]) || []).map((q: any) => q.difficulty))];
         assignDifficultyLevel(score, availableDifficulties);
+      } else if (adaptiveMode) {
+        // End of a group in adaptive mode — recompute level and load next group.
+        await loadNextAdaptiveGroup(questions);
       } else {
         handleSubmit();
       }
