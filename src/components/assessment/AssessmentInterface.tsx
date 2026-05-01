@@ -360,19 +360,33 @@ const AssessmentInterface = () => {
   };
 
   const assignDifficultyLevel = async (score: number, availableDifficulties: string[]) => {
-    let targetLevel: "easy" | "medium" | "hard" | null = null;
-    
+    let targetLevel: "basic" | "easy" | "medium" | "hard" | null = null;
+
     const nonPracticeDiffs = availableDifficulties.filter(d => d !== 'practice');
-    
+
     if (nonPracticeDiffs.length === 1) {
-      targetLevel = nonPracticeDiffs[0] as "easy" | "medium" | "hard";
+      targetLevel = nonPracticeDiffs[0] as any;
     } else {
-      if (score >= 75) {
-        targetLevel = "hard";
-      } else if (score >= 50) {
-        targetLevel = "medium";
-      } else {
-        targetLevel = "easy";
+      // New entry-level thresholds:
+      // Basic: 0-20%, Easy: 20-50%, Medium: 50-80%, Hard: 80-100%
+      if (score >= 80) targetLevel = "hard";
+      else if (score >= 50) targetLevel = "medium";
+      else if (score >= 20) targetLevel = "easy";
+      else targetLevel = "basic";
+
+      // Fall back to closest available level if target not present
+      const order: ("basic" | "easy" | "medium" | "hard")[] = ["basic", "easy", "medium", "hard"];
+      if (!nonPracticeDiffs.includes(targetLevel as string)) {
+        const targetIdx = order.indexOf(targetLevel as any);
+        let best: any = null;
+        let bestDist = Infinity;
+        for (const d of nonPracticeDiffs) {
+          const idx = order.indexOf(d as any);
+          if (idx < 0) continue;
+          const dist = Math.abs(idx - targetIdx);
+          if (dist < bestDist) { bestDist = dist; best = d; }
+        }
+        if (best) targetLevel = best;
       }
     }
 
