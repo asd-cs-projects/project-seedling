@@ -5,6 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { GeminiLoader } from '@/components/ui/gemini-loader';
 import { GlobalPassageManager } from './GlobalPassageManager';
@@ -45,6 +46,8 @@ export const CreateTestWizard = ({ teacherId, onComplete, onCancel }: CreateTest
     description: '',
     target_grade: '',
     target_section: '',
+    adaptive_mode: false,
+    groups_per_student: 4,
   });
 
   // Poll the questions count whenever step is 'questions' so the cancel
@@ -111,7 +114,9 @@ export const CreateTestWizard = ({ teacherId, onComplete, onCancel }: CreateTest
         target_section: basicInfo.target_section || null,
         teacher_id: teacherId,
         is_active: true,
-      })
+        adaptive_mode: basicInfo.adaptive_mode,
+        groups_per_student: basicInfo.adaptive_mode ? basicInfo.groups_per_student : null,
+      } as any)
       .select()
       .single();
 
@@ -422,6 +427,46 @@ export const CreateTestWizard = ({ teacherId, onComplete, onCancel }: CreateTest
                     className="input-glassy"
                   />
                 </div>
+              </div>
+
+              {/* Adaptive Module Mode */}
+              <div className="mt-6 p-4 rounded-xl border border-primary/20 bg-primary/5 space-y-3">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <Label htmlFor="adaptive-mode" className="text-base font-semibold cursor-pointer">
+                      Adaptive Module Mode
+                    </Label>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      When ON, the test moves the student up or down a difficulty tier after each group based on their score in that group.
+                      When OFF, students stay at the difficulty tier assigned by their practice score.
+                    </p>
+                  </div>
+                  <Switch
+                    id="adaptive-mode"
+                    checked={basicInfo.adaptive_mode}
+                    onCheckedChange={(v) => setBasicInfo(prev => ({ ...prev, adaptive_mode: v }))}
+                  />
+                </div>
+
+                {basicInfo.adaptive_mode && (
+                  <div className="space-y-2 pt-3 border-t border-primary/15">
+                    <Label htmlFor="groups-per-student">Groups per student (X)</Label>
+                    <Input
+                      id="groups-per-student"
+                      type="text"
+                      value={basicInfo.groups_per_student.toString()}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, '');
+                        setBasicInfo(prev => ({ ...prev, groups_per_student: Math.max(1, parseInt(val) || 1) }));
+                      }}
+                      placeholder="e.g., 4"
+                      className="input-glassy max-w-[200px]"
+                    />
+                    <p className="text-xs text-primary/80 bg-primary/10 rounded-lg p-2.5 leading-relaxed">
+                      <strong>Tip:</strong> If X = number of groups per student, it is recommended that <strong>Basic</strong> and <strong>Hard</strong> levels have <strong>X</strong> groups and <strong>Easy</strong> and <strong>Medium</strong> levels have <strong>X−1</strong> groups for optimal adaptation.
+                    </p>
+                  </div>
+                )}
               </div>
             </Card>
 

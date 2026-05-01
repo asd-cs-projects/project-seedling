@@ -38,7 +38,7 @@ const AssessmentInterface = () => {
   const [testId, setTestId] = useState<string>('');
   const [isRetake, setIsRetake] = useState(false);
   
-  const [assignedLevel, setAssignedLevel] = useState<"easy" | "medium" | "hard" | null>(null);
+  const [assignedLevel, setAssignedLevel] = useState<"basic" | "easy" | "medium" | "hard" | null>(null);
   const [practiceComplete, setPracticeComplete] = useState(false);
   const [practiceScore, setPracticeScore] = useState(0);
   const [isSingleDifficulty, setIsSingleDifficulty] = useState(false);
@@ -152,7 +152,8 @@ const AssessmentInterface = () => {
         setTimeRemaining((prev) => {
           if (prev <= 1) {
             clearInterval(timer);
-            handleSubmit();
+            // Auto-submit and tag the attempt as Timed Out
+            handleSubmit('timed_out');
             return 0;
           }
           return prev - 1;
@@ -360,19 +361,33 @@ const AssessmentInterface = () => {
   };
 
   const assignDifficultyLevel = async (score: number, availableDifficulties: string[]) => {
-    let targetLevel: "easy" | "medium" | "hard" | null = null;
-    
+    let targetLevel: "basic" | "easy" | "medium" | "hard" | null = null;
+
     const nonPracticeDiffs = availableDifficulties.filter(d => d !== 'practice');
-    
+
     if (nonPracticeDiffs.length === 1) {
-      targetLevel = nonPracticeDiffs[0] as "easy" | "medium" | "hard";
+      targetLevel = nonPracticeDiffs[0] as any;
     } else {
-      if (score >= 75) {
-        targetLevel = "hard";
-      } else if (score >= 50) {
-        targetLevel = "medium";
-      } else {
-        targetLevel = "easy";
+      // New entry-level thresholds:
+      // Basic: 0-20%, Easy: 20-50%, Medium: 50-80%, Hard: 80-100%
+      if (score >= 80) targetLevel = "hard";
+      else if (score >= 50) targetLevel = "medium";
+      else if (score >= 20) targetLevel = "easy";
+      else targetLevel = "basic";
+
+      // Fall back to closest available level if target not present
+      const order: ("basic" | "easy" | "medium" | "hard")[] = ["basic", "easy", "medium", "hard"];
+      if (!nonPracticeDiffs.includes(targetLevel as string)) {
+        const targetIdx = order.indexOf(targetLevel as any);
+        let best: any = null;
+        let bestDist = Infinity;
+        for (const d of nonPracticeDiffs) {
+          const idx = order.indexOf(d as any);
+          if (idx < 0) continue;
+          const dist = Math.abs(idx - targetIdx);
+          if (dist < bestDist) { bestDist = dist; best = d; }
+        }
+        if (best) targetLevel = best;
       }
     }
 
@@ -457,7 +472,7 @@ const AssessmentInterface = () => {
     }
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (reason: 'completed' | 'timed_out' = 'completed') => {
     if (!practiceComplete) {
       const score = await calculatePracticeScore();
       const { data: allQs } = await (supabase as any)
@@ -515,7 +530,8 @@ const AssessmentInterface = () => {
               time_spent: timeSpent,
               answers,
               is_retake: true,
-            })
+              status: reason,
+            } as any)
             .select()
             .single();
 
@@ -547,7 +563,8 @@ const AssessmentInterface = () => {
           time_spent: timeSpent,
           answers,
           is_retake: isRetake,
-        })
+          status: reason,
+        } as any)
         .select()
         .single();
 
@@ -587,8 +604,10 @@ const AssessmentInterface = () => {
     localStorage.removeItem('currentTest');
 
     toast({
-      title: "Test Submitted!",
-      description: `Your score: ${finalScore}%`,
+      title: reason === 'timed_out' ? "Time's Up!" : "Test Submitted!",
+      description: reason === 'timed_out'
+        ? `Time ran out — your test was auto-submitted. Score: ${finalScore}%`
+        : `Your score: ${finalScore}%`,
       duration: 5000,
     });
 
