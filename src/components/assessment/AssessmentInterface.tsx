@@ -38,7 +38,7 @@ const AssessmentInterface = () => {
   const [testId, setTestId] = useState<string>('');
   const [isRetake, setIsRetake] = useState(false);
   
-  const [assignedLevel, setAssignedLevel] = useState<"easy" | "medium" | "hard" | null>(null);
+  const [assignedLevel, setAssignedLevel] = useState<"basic" | "easy" | "medium" | "hard" | null>(null);
   const [practiceComplete, setPracticeComplete] = useState(false);
   const [practiceScore, setPracticeScore] = useState(0);
   const [isSingleDifficulty, setIsSingleDifficulty] = useState(false);
