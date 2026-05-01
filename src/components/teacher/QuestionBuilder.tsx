@@ -318,7 +318,7 @@ export const QuestionBuilder = ({ testId, onQuestionsChange }: QuestionBuilderPr
               </Select>
             </div>
 
-            {/* Passage Section */}
+            {/* Passage / Module Group Section */}
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <input
@@ -328,16 +328,19 @@ export const QuestionBuilder = ({ testId, onQuestionsChange }: QuestionBuilderPr
                   onChange={(e) => setIsPassageQuestion(e.target.checked)}
                   className="rounded"
                 />
-                <Label htmlFor="passageCheck">This is a passage-based question</Label>
+                <Label htmlFor="passageCheck">Group this question into a Passage or Module</Label>
               </div>
+              <p className="text-xs text-muted-foreground pl-6">
+                Use a <strong>Passage</strong> for English (text shown to students) or a <strong>Module</strong> for any other subject (Math, Science…) — modules group questions by topic without requiring text.
+              </p>
             </div>
 
             {isPassageQuestion && (
               <div className="space-y-4 p-4 bg-muted/20 rounded-xl border border-border">
                 <div className="space-y-2">
-                  <Label>Select Passage</Label>
-                  <Select 
-                    value={isCreatingNewPassage ? 'new' : selectedPassageId} 
+                  <Label>Select Group</Label>
+                  <Select
+                    value={isCreatingNewPassage ? 'new' : selectedPassageId}
                     onValueChange={(v) => {
                       if (v === 'new') {
                         setIsCreatingNewPassage(true);
@@ -352,10 +355,10 @@ export const QuestionBuilder = ({ testId, onQuestionsChange }: QuestionBuilderPr
                       <SelectValue placeholder="Select existing or create new" />
                     </SelectTrigger>
                     <SelectContent className="bg-popover border border-border z-50">
-                      <SelectItem value="new">+ Create New Passage</SelectItem>
+                      <SelectItem value="new">+ Create New Passage / Module</SelectItem>
                       {passages.map(p => (
                         <SelectItem key={p.id} value={p.id}>
-                          {p.passage_code} {p.title ? `- ${p.title}` : ''}
+                          [{p.passage_type === 'module' ? 'Module' : 'Passage'}] {p.passage_code} {p.title ? `- ${p.title}` : (p as any).module_name ? `- ${(p as any).module_name}` : ''}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -365,32 +368,72 @@ export const QuestionBuilder = ({ testId, onQuestionsChange }: QuestionBuilderPr
                 {isCreatingNewPassage && (
                   <div className="space-y-3 p-3 bg-background rounded-lg border border-border">
                     <div className="space-y-2">
-                      <Label>Passage Code *</Label>
+                      <Label>Type</Label>
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant={groupKind === 'passage' ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setGroupKind('passage')}
+                          className="rounded-xl"
+                        >
+                          Passage (with text)
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={groupKind === 'module' ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setGroupKind('module')}
+                          className="rounded-xl"
+                        >
+                          Module (no text)
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Code *</Label>
                       <Input
                         value={newPassageCode}
                         onChange={(e) => setNewPassageCode(e.target.value)}
-                        placeholder="e.g., A, B, Passage-1"
+                        placeholder="e.g., A, B, Module-1"
                         className="input-glassy"
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label>Passage Title (Optional)</Label>
-                      <Input
-                        value={newPassageTitle}
-                        onChange={(e) => setNewPassageTitle(e.target.value)}
-                        placeholder="e.g., The Water Cycle"
-                        className="input-glassy"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Passage Content *</Label>
-                      <Textarea
-                        value={newPassageContent}
-                        onChange={(e) => setNewPassageContent(e.target.value)}
-                        placeholder="Enter the reading passage..."
-                        className="input-glassy min-h-[120px]"
-                      />
-                    </div>
+                    {groupKind === 'module' ? (
+                      <div className="space-y-2">
+                        <Label>Module Name *</Label>
+                        <Input
+                          value={newModuleName}
+                          onChange={(e) => setNewModuleName(e.target.value)}
+                          placeholder="e.g., Algebra Basics, Photosynthesis"
+                          className="input-glassy"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Students will see questions grouped together but no passage text.
+                        </p>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="space-y-2">
+                          <Label>Passage Title (Optional)</Label>
+                          <Input
+                            value={newPassageTitle}
+                            onChange={(e) => setNewPassageTitle(e.target.value)}
+                            placeholder="e.g., The Water Cycle"
+                            className="input-glassy"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Passage Content *</Label>
+                          <Textarea
+                            value={newPassageContent}
+                            onChange={(e) => setNewPassageContent(e.target.value)}
+                            placeholder="Enter the reading passage..."
+                            className="input-glassy min-h-[120px]"
+                          />
+                        </div>
+                      </>
+                    )}
                     <Button
                       type="button"
                       onClick={handleCreatePassage}
@@ -398,7 +441,7 @@ export const QuestionBuilder = ({ testId, onQuestionsChange }: QuestionBuilderPr
                       variant="secondary"
                     >
                       <Plus className="h-4 w-4 mr-2" />
-                      Create Passage
+                      Create {groupKind === 'module' ? 'Module' : 'Passage'}
                     </Button>
                   </div>
                 )}
