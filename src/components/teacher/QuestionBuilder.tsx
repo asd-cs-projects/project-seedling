@@ -107,8 +107,17 @@ export const QuestionBuilder = ({ testId, onQuestionsChange }: QuestionBuilderPr
   };
 
   const handleCreatePassage = async () => {
-    if (!newPassageCode.trim() || !newPassageContent.trim()) {
-      toast({ title: 'Error', description: 'Please enter passage code and content', variant: 'destructive' });
+    const isModule = groupKind === 'module';
+    if (!newPassageCode.trim()) {
+      toast({ title: 'Error', description: 'Please enter a code', variant: 'destructive' });
+      return;
+    }
+    if (!isModule && !newPassageContent.trim()) {
+      toast({ title: 'Error', description: 'Please enter passage content', variant: 'destructive' });
+      return;
+    }
+    if (isModule && !newModuleName.trim()) {
+      toast({ title: 'Error', description: 'Please enter a module name', variant: 'destructive' });
       return;
     }
 
@@ -118,9 +127,10 @@ export const QuestionBuilder = ({ testId, onQuestionsChange }: QuestionBuilderPr
         test_id: testId,
         passage_code: newPassageCode.trim(),
         title: newPassageTitle.trim() || null,
-        content: newPassageContent.trim(),
-        passage_type: 'text',
-      })
+        content: isModule ? '' : newPassageContent.trim(),
+        passage_type: isModule ? 'module' : 'text',
+        module_name: isModule ? newModuleName.trim() : null,
+      } as any)
       .select()
       .single();
 
@@ -129,13 +139,14 @@ export const QuestionBuilder = ({ testId, onQuestionsChange }: QuestionBuilderPr
       return;
     }
 
-    toast({ title: 'Success', description: 'Passage created successfully' });
+    toast({ title: 'Success', description: `${isModule ? 'Module' : 'Passage'} created successfully` });
     setPassages(prev => [...prev, data]);
     setSelectedPassageId(data.id);
     setIsCreatingNewPassage(false);
     setNewPassageCode('');
     setNewPassageTitle('');
     setNewPassageContent('');
+    setNewModuleName('');
   };
 
   const handleAddQuestion = async () => {
