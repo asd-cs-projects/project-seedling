@@ -292,6 +292,8 @@ const AssessmentInterface = () => {
         .eq('test_id', testId);
 
       const passageMap = new Map(passagesData?.map(p => [p.id, p]) || []);
+      setPassageMapCache(passageMap);
+      setAllQuestionsCache(allQuestions);
 
       const mappedQuestions = allQuestions.map((q: any) => ({
         ...q,
