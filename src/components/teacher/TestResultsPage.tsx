@@ -39,6 +39,7 @@ interface TestResult {
   time_spent: number;
   completed_at: string;
   answers: any;
+  status?: string;
   ai_strengths?: string[];
   ai_improvements?: string[];
   ai_topic_tags?: string[];
@@ -47,6 +48,22 @@ interface TestResult {
   student_class?: string;
   student_gender?: string;
 }
+
+const STATUS_LABELS: Record<string, { label: string; className: string }> = {
+  completed: { label: 'Completed', className: 'bg-success/15 text-success border-success/30' },
+  timed_out: { label: 'Timed Out', className: 'bg-warning/15 text-warning-foreground border-warning/40' },
+  incomplete: { label: 'Incomplete', className: 'bg-muted text-muted-foreground border-border' },
+  not_attempted: { label: 'Not Attempted', className: 'bg-destructive/10 text-destructive border-destructive/30' },
+};
+
+const StatusBadge = ({ status }: { status?: string }) => {
+  const cfg = STATUS_LABELS[status || 'completed'] || STATUS_LABELS.completed;
+  return (
+    <span className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full border ${cfg.className}`}>
+      {cfg.label}
+    </span>
+  );
+};
 
 export const TestResultsPage = ({ testId, testTitle, onBack }: TestResultsPageProps) => {
   const { toast } = useToast();
