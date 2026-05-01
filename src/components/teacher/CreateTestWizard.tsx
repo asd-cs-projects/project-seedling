@@ -45,6 +45,8 @@ export const CreateTestWizard = ({ teacherId, onComplete, onCancel }: CreateTest
     description: '',
     target_grade: '',
     target_section: '',
+    adaptive_mode: false,
+    groups_per_student: 4,
   });
 
   // Poll the questions count whenever step is 'questions' so the cancel
