@@ -888,9 +888,10 @@ export const TestResultsPage = ({ testId, testTitle, onBack }: TestResultsPagePr
               >
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <User className="h-4 w-4 text-muted-foreground" />
                       <p className="font-semibold">{result.student_name}</p>
+                      <StatusBadge status={result.status} />
                       {result.student_grade && (
                         <span className="text-xs px-2 py-0.5 rounded-full bg-muted">
                           {result.student_grade} - {result.student_class}
