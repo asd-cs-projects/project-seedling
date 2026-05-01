@@ -199,6 +199,8 @@ const AssessmentInterface = () => {
       setTestId(test.id);
       setIsRetake(test.isRetake || false);
       setTimeRemaining(test.duration_minutes * 60);
+      setAdaptiveMode(!!test.adaptive_mode);
+      setGroupsPerStudent(test.groups_per_student || 0);
 
       // Check for existing session
       if (user) {
