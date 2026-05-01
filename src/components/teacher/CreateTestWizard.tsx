@@ -113,7 +113,9 @@ export const CreateTestWizard = ({ teacherId, onComplete, onCancel }: CreateTest
         target_section: basicInfo.target_section || null,
         teacher_id: teacherId,
         is_active: true,
-      })
+        adaptive_mode: basicInfo.adaptive_mode,
+        groups_per_student: basicInfo.adaptive_mode ? basicInfo.groups_per_student : null,
+      } as any)
       .select()
       .single();
 
