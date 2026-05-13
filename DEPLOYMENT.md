@@ -1,6 +1,6 @@
 # Self-Hosting Deployment Guide
 
-This app is fully portable: **own Supabase project + Vercel frontend + direct Gemini API**.
+This app is fully portable: **own Supabase project + Vercel frontend + OpenRouter for AI**.
 No Lovable Cloud or Lovable AI Gateway is required at runtime.
 
 ---
@@ -9,7 +9,7 @@ No Lovable Cloud or Lovable AI Gateway is required at runtime.
 
 - A [Supabase](https://supabase.com) account (free tier works)
 - A [Vercel](https://vercel.com) account
-- A [Google AI Studio](https://aistudio.google.com/apikey) account (for Gemini API key)
+- An [OpenRouter](https://openrouter.ai/keys) account (one API key, any model)
 - [Supabase CLI](https://supabase.com/docs/guides/cli) installed locally
 - [Node.js 18+](https://nodejs.org) and `npm` (or `bun`)
 
