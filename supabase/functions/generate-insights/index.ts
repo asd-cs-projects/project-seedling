@@ -299,8 +299,9 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   try {
-    const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
-    if (!geminiApiKey) throw new HttpError(500, 'GEMINI_API_KEY not configured');
+    const apiKey = Deno.env.get('OPENROUTER_API_KEY');
+    const aiModel = Deno.env.get('OPENROUTER_MODEL') || 'openai/gpt-4o-mini';
+    if (!apiKey) throw new HttpError(500, 'OPENROUTER_API_KEY not configured');
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
@@ -472,8 +473,8 @@ Top topic tags: ${topTags.join(' | ') || 'none yet'}
 Per-test: 
 ${perTest.join('\n')}`;
 
-      const resp = await callGemini(prompt, geminiApiKey, 2048);
-      const parsed = parseGeminiJson(resp);
+      const resp = await callOpenRouter(prompt, apiKey, aiModel, 2048);
+      const parsed = parseAiJson(resp);
       const summary = String(parsed.summary ?? '').trim();
       const strengths = normalizeStringArray(parsed.strengths);
       const improvements = normalizeStringArray(parsed.improvements);
@@ -581,8 +582,8 @@ Top topic tags: ${topTags.join(' | ') || 'none yet'}
 Per-test:
 ${perTest.join('\n')}`;
 
-      const resp = await callGemini(prompt, geminiApiKey, 2048);
-      const parsed = parseGeminiJson(resp);
+      const resp = await callOpenRouter(prompt, apiKey, aiModel, 2048);
+      const parsed = parseAiJson(resp);
       const summary = String(parsed.summary ?? '').trim();
       const strengths = normalizeStringArray(parsed.strengths);
       const improvements = normalizeStringArray(parsed.improvements);
@@ -642,8 +643,8 @@ ${perTest.join('\n')}`;
         const batch = pending.slice(i, i + BATCH);
         const prompt = buildExplanationsPrompt(batch as Array<Record<string, unknown>>, testSubject, passageMap);
         try {
-          const resp = await callGemini(prompt, geminiApiKey, 4096);
-          const parsed = parseGeminiJson(resp);
+          const resp = await callOpenRouter(prompt, apiKey, aiModel, 4096);
+          const parsed = parseAiJson(resp);
           if (Array.isArray(parsed)) {
             for (const item of parsed) {
               const id = String(item?.id ?? '').trim();
@@ -763,8 +764,8 @@ Weakest: ${weakest.join(' ; ') || 'n/a'}
 Per-question stats:
 ${stats.join('\n')}`;
 
-      const resp = await callGemini(prompt, geminiApiKey, 4096);
-      const parsed = parseGeminiJson(resp);
+      const resp = await callOpenRouter(prompt, apiKey, aiModel, 4096);
+      const parsed = parseAiJson(resp);
       const summary = String(parsed.summary ?? '').trim();
       const topicHeatmap = normalizeHeatmap(parsed.topicHeatmap);
       const strengths = normalizeStringArray(parsed.strengths);
@@ -847,8 +848,8 @@ ${stats.join('\n')}`;
       studentDifficulty || 'general',
     );
 
-    const resp = await callGemini(prompt, geminiApiKey, 2048);
-    const parsed = parseGeminiJson(resp);
+    const resp = await callOpenRouter(prompt, apiKey, aiModel, 2048);
+    const parsed = parseAiJson(resp);
     const strengths = normalizeStringArray(parsed.strengths);
     const improvements = normalizeStringArray(parsed.improvements);
     const topicTags = normalizeStringArray(parsed.topicTags);
