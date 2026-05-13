@@ -33,115 +33,75 @@ serve(async (req) => {
       );
     }
 
-    // Use environment variable for API key (set in Vercel dashboard)
-    const apiKey = Deno.env.get('GEMINI_API_KEY');
+    const apiKey = Deno.env.get('OPENROUTER_API_KEY');
+    const model = Deno.env.get('OPENROUTER_MODEL') || 'openai/gpt-4o-mini';
     if (!apiKey) {
       return new Response(
-        JSON.stringify({ error: 'Gemini API key not configured on server.' }),
+        JSON.stringify({ error: 'OPENROUTER_API_KEY not configured on server.' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const systemPrompt = `You are an expert at parsing educational assessment questions from OCR text.
-Your task is to extract multiple-choice questions (MCQs) and properly link them to passages.
+    const systemPrompt = `You are an expert at parsing educational MCQ questions from OCR text. Link questions to passages.
 
-CRITICAL RULES:
-
-1. PASSAGE LINKING:
-   - If a question has [BELONGS_TO_PASSAGE: Title] marker, include that passage info
-   - Set passage_id as a slug of the title (e.g., "passage-a-water-cycle")
-   - Include passage_title and passage_text for questions that belong to passages
-   - All questions belonging to the same passage should share the same passage_id
-
-2. TABLE HANDLING:
-   - If [TABLE_IMAGE_N: description] appears near a question, include table_description
-   - Tables should be referenced as images in the quiz display
-
-3. IMAGE HANDLING:
-   - If [IMAGE_N: description] appears near a question, include image_description
-
-4. QUESTION EXTRACTION:
-   - Extract question text, all options (A, B, C, D), correct answer
-   - Default marks to 1 unless specified
-   - Clean up any OCR artifacts
-
-Return JSON in this exact format:
+Return JSON ONLY in this exact format:
 {
   "questions": [
     {
-      "question_text": "Complete question text",
-      "options": ["Option A", "Option B", "Option C", "Option D"],
+      "question_text": "...",
+      "options": ["A","B","C","D"],
       "correct_answer": "A",
       "marks": 1,
-      "image_description": "Description if image present, null otherwise",
-      "table_description": "Description if table present, null otherwise", 
-      "passage_id": "passage-slug if belongs to passage, null otherwise",
-      "passage_title": "Passage title if applicable",
-      "passage_text": "Full passage text if applicable"
+      "image_description": null,
+      "table_description": null,
+      "passage_id": null,
+      "passage_title": null,
+      "passage_text": null
     }
   ]
 }
 
-IMPORTANT:
-- passage_text should only be included ONCE for the first question of each passage
-- Subsequent questions in the same passage only need passage_id
-- Return ONLY valid JSON, no other text`;
+Rules:
+- If a question has [BELONGS_TO_PASSAGE: Title], set passage_id as a slug of the title (e.g. "passage-a-water-cycle"), passage_title and passage_text (only on the FIRST question of that passage).
+- For [TABLE_IMAGE_N: desc] near a question, set table_description.
+- For [IMAGE_N: desc] near a question, set image_description.
+- correct_answer must be A/B/C/D. Default marks=1.`;
 
-    const passageInfo = passages.length > 0 
+    const passageInfo = passages.length > 0
       ? `\n\nDetected ${passages.length} passages:\n${passages.map((p: any) => `- "${p.title}"`).join('\n')}`
       : '';
 
-    // Try multiple models with retry+backoff to handle 429/503 (high demand)
-    const modelsToTry = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'gemini-flash-latest'];
-    const requestBody = JSON.stringify({
-      contents: [
-        {
-          role: 'user',
-          parts: [
-            { text: systemPrompt + `\n\nParse the following OCR text and extract all MCQ questions with proper passage linking.${passageInfo}\n\nOCR Text:\n${extractedText}` }
-          ]
-        }
-      ],
-      generationConfig: {
-        maxOutputTokens: 32000,
-        temperature: 0.2,
-        responseMimeType: 'application/json',
-        thinkingConfig: { thinkingBudget: 0 },
-      },
-    });
-
     let response: Response | null = null;
     let lastErrorText = '';
-    outer: for (const model of modelsToTry) {
-      for (let attempt = 0; attempt < 3; attempt++) {
-        const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: requestBody,
-        });
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: `Parse the OCR text and extract MCQs with proper passage linking.${passageInfo}\n\nOCR Text:\n${extractedText}` },
+          ],
+          response_format: { type: 'json_object' },
+          temperature: 0.2,
+          max_tokens: 32000,
+        }),
+      });
 
-        if (r.ok) {
-          response = r;
-          break outer;
+      if (r.ok) { response = r; break; }
+      lastErrorText = await r.text();
+      console.error(`OpenRouter attempt ${attempt + 1} failed (${r.status}):`, lastErrorText.substring(0, 200));
+      if (r.status === 429 || r.status === 503 || r.status === 500) {
+        if (attempt < 2) {
+          await new Promise(res => setTimeout(res, 1000 * Math.pow(2, attempt) + Math.random() * 500));
+          continue;
         }
-
-        lastErrorText = await r.text();
-        console.error(`Gemini ${model} attempt ${attempt + 1} failed (${r.status}):`, lastErrorText.substring(0, 200));
-
-        // Retry on transient errors (429 rate limit, 503 overload, 500)
-        if (r.status === 429 || r.status === 503 || r.status === 500) {
-          if (attempt < 2) {
-            const backoff = 1000 * Math.pow(2, attempt) + Math.random() * 500;
-            await new Promise(resolve => setTimeout(resolve, backoff));
-            continue;
-          }
-          // Exhausted retries on this model — try next model
-          break;
-        }
-
-        // Non-retryable error — fail immediately
-        throw new Error(`Gemini API error: ${r.status} - ${lastErrorText}`);
       }
+      throw new Error(`OpenRouter API error: ${r.status} - ${lastErrorText}`);
     }
 
     if (!response) {
@@ -152,43 +112,28 @@ IMPORTANT:
     }
 
     const data = await response.json();
-    // Gemini API response format: candidates[0].content.parts[0].text
-    const content = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const content: string = data.choices?.[0]?.message?.content ?? '';
 
-    // Extract JSON from the response (strip code fences if present)
     let parsed: { questions: ParsedQuestion[] };
     try {
       const cleaned = content.replace(/```json\s*/gi, '').replace(/```/g, '').trim();
       const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        parsed = JSON.parse(jsonMatch[0]);
-      } else {
-        throw new Error('No JSON found in response');
-      }
+      if (!jsonMatch) throw new Error('No JSON found in response');
+      parsed = JSON.parse(jsonMatch[0]);
     } catch (parseError) {
       console.error('JSON parse error:', parseError, 'Content:', content);
       return new Response(
-        JSON.stringify({ 
-          error: 'Failed to parse AI response',
-          rawContent: content.substring(0, 500)
-        }),
+        JSON.stringify({ error: 'Failed to parse AI response', rawContent: content.substring(0, 500) }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Validate and clean the parsed questions
-    const validQuestions = (parsed.questions || []).filter((q: ParsedQuestion) => 
-      q.question_text && 
-      Array.isArray(q.options) && 
-      q.options.length >= 2 &&
-      q.correct_answer
+    const validQuestions = (parsed.questions || []).filter((q: ParsedQuestion) =>
+      q.question_text && Array.isArray(q.options) && q.options.length >= 2 && q.correct_answer
     ).map((q: ParsedQuestion, index: number) => {
-      // Limit options to 4 (A, B, C, D only)
       const limitedOptions = q.options.slice(0, 4);
-      // Validate correct_answer is A-D
       const validAnswer = q.correct_answer.toUpperCase().charAt(0);
-      const correctedAnswer = ['A', 'B', 'C', 'D'].includes(validAnswer) ? validAnswer : 'A';
-      
+      const correctedAnswer = ['A','B','C','D'].includes(validAnswer) ? validAnswer : 'A';
       return {
         ...q,
         options: limitedOptions,
@@ -207,17 +152,16 @@ IMPORTANT:
     console.log(`Parsed ${validQuestions.length} questions. Passages linked: ${validQuestions.filter(q => q.passage_id).length}`);
 
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         questions: validQuestions,
         totalFound: validQuestions.length,
         imagesDetected: images.length,
         tablesDetected: tables.length,
         passagesDetected: passages.length,
-        success: true 
+        success: true,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
-
   } catch (error: unknown) {
     console.error('Parse questions error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Failed to parse questions';
