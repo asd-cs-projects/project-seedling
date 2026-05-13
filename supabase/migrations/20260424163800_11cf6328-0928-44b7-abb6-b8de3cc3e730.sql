@@ -1,1 +1,0 @@
-DROP POLICY IF EXISTS "Authenticated users can read test-files" ON storage.objects;
