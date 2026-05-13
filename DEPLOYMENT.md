@@ -126,9 +126,9 @@ The migrations already create a private `test-files` bucket with RLS policies. N
 
 1. Open your Vercel URL.
 2. Sign up as a teacher → confirm auto-login works.
-3. Create a test → upload a PDF → verifies `pdf-ocr` + `parse-questions` (uses `GEMINI_API_KEY`).
+3. Create a test → upload a PDF → verifies `pdf-ocr` + `parse-questions` (uses OpenRouter).
 4. As a student, take the test → check results.
-5. As a teacher, open a student's detail page → click "Generate AI Summary" → verifies `generate-insights` (uses `GEMINI_API_KEY`).
+5. As a teacher, open a student's detail page → click "Generate AI Summary" → verifies `generate-insights` (uses OpenRouter).
 
 ---
 
@@ -137,7 +137,8 @@ The migrations already create a private `test-files` bucket with RLS policies. N
 ### Backend (Supabase Edge Function Secrets)
 | Variable | Editable how |
 |---|---|
-| `GEMINI_API_KEY` | Supabase Dashboard → Edge Functions → Secrets, **or** `supabase secrets set` |
+| `OPENROUTER_API_KEY` | Supabase Dashboard → Edge Functions → Secrets, **or** `supabase secrets set OPENROUTER_API_KEY=...` |
+| `OPENROUTER_MODEL` | same — set to any OpenRouter model slug (e.g. `openai/gpt-4o-mini`) |
 | `ADMIN_SECRET_ID` | same as above |
 | `SUPABASE_URL` / `SUPABASE_ANON_KEY` / `SUPABASE_SERVICE_ROLE_KEY` | auto-injected, do not edit |
 
@@ -147,6 +148,8 @@ The migrations already create a private `test-files` bucket with RLS policies. N
 | `VITE_SUPABASE_URL` | Vercel → Settings → Environment Variables → redeploy |
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | same |
 | `VITE_SUPABASE_PROJECT_ID` | same |
+| `OPENROUTER_API_KEY` (only if using `api/chat.ts`) | same |
+| `OPENROUTER_MODEL` (only if using `api/chat.ts`) | same |
 
 ### Local development
 Create a local `.env` file (gitignored) with the three `VITE_*` vars pointing at your Supabase project, then run `npm run dev`.
@@ -155,8 +158,9 @@ Create a local `.env` file (gitignored) with the three `VITE_*` vars pointing at
 
 ## Troubleshooting
 
-- **"GEMINI_API_KEY not configured"** in edge function logs → set the secret in Supabase Dashboard.
-- **AI calls return 429** → you've hit Gemini's free-tier rate limit. Upgrade in Google AI Studio or wait.
+- **"OPENROUTER_API_KEY not configured"** in edge function logs → set the secret in Supabase Dashboard → Edge Functions → Secrets.
+- **AI calls return 429** → you've hit OpenRouter rate limits / out of credits. Top up at https://openrouter.ai/credits or switch `OPENROUTER_MODEL` to a cheaper one.
+- **PDF OCR returns garbage / empty** → the chosen `OPENROUTER_MODEL` may not support file input well. Try `openai/gpt-4o-mini`, `google/gemini-2.5-flash`, or `anthropic/claude-3.5-sonnet`.
 - **Auth redirects to wrong URL** → fix Site URL / Redirect URLs in Supabase Auth settings.
 - **CORS errors** → confirm edge functions deployed successfully (`supabase functions list`).
 - **Edge function 401** → make sure the frontend is sending the Supabase JWT in the `Authorization: Bearer <token>` header (the SDK does this automatically when the user is logged in).
