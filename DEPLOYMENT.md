@@ -71,11 +71,14 @@ All four functions run on Deno and have no Lovable-specific dependencies.
 
 ## 6. Set Edge Function secrets
 
+This app uses **OpenRouter** for all AI calls (PDF OCR, question parsing, AI insights, chat). You pick the model.
+
 In the Supabase Dashboard → **Edge Functions → Secrets** (or `supabase secrets set`):
 
 | Secret | Value | Where to get it |
 |---|---|---|
-| `GEMINI_API_KEY` | `AIza…` | https://aistudio.google.com/apikey |
+| `OPENROUTER_API_KEY` | `sk-or-v1-…` | https://openrouter.ai/keys |
+| `OPENROUTER_MODEL` | e.g. `openai/gpt-4o-mini`, `anthropic/claude-3.5-sonnet`, `google/gemini-2.5-flash` | Browse models at https://openrouter.ai/models. Use the full slug. For PDF OCR to work well, pick a model that supports file/PDF input (most major models do via OpenRouter's built-in PDF parser). |
 | `ADMIN_SECRET_ID` | any string you choose | Used to gate admin signups. Pick a strong random value. |
 
 > **Note:** `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` are **auto-injected** by Supabase into every edge function — you do **not** need to set them manually.
@@ -83,11 +86,14 @@ In the Supabase Dashboard → **Edge Functions → Secrets** (or `supabase secre
 CLI alternative:
 
 ```bash
-supabase secrets set GEMINI_API_KEY=AIza...
+supabase secrets set OPENROUTER_API_KEY=sk-or-v1-...
+supabase secrets set OPENROUTER_MODEL=openai/gpt-4o-mini
 supabase secrets set ADMIN_SECRET_ID=your-strong-random-string
 ```
 
-To **edit** a secret later, just run `supabase secrets set NAME=newvalue` again, or update it in the Dashboard. No redeploy needed — edge functions pick up the new value on next invocation.
+To **edit** a secret later (e.g. switch models), run `supabase secrets set NAME=newvalue` again, or update it in the Dashboard. No redeploy needed — edge functions pick up the new value on next invocation.
+
+If you also deploy the `api/chat.ts` Vercel serverless route, set the same `OPENROUTER_API_KEY` and `OPENROUTER_MODEL` in **Vercel → Settings → Environment Variables**.
 
 ---
 
