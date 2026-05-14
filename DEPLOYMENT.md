@@ -87,7 +87,7 @@ CLI alternative:
 
 ```bash
 supabase secrets set OPENROUTER_API_KEY=sk-or-v1-...
-supabase secrets set OPENROUTER_MODEL=openai/gpt-4o-mini
+supabase secrets set OPENROUTER_MODEL=google/gemini-2.0-flash-exp:free
 supabase secrets set ADMIN_SECRET_ID=your-strong-random-string
 ```
 
