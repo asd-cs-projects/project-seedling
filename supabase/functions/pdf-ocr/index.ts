@@ -84,7 +84,7 @@ Return only the extracted text with markers embedded.`;
         plugins: [
           {
             id: 'file-parser',
-            pdf: { engine: 'pdf-text' },
+            pdf: { engine: 'mistral-ocr' },
           },
         ],
         max_tokens: 16000,
