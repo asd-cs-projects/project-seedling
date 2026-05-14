@@ -159,8 +159,8 @@ Create a local `.env` file (gitignored) with the three `VITE_*` vars pointing at
 ## Troubleshooting
 
 - **"OPENROUTER_API_KEY not configured"** in edge function logs → set the secret in Supabase Dashboard → Edge Functions → Secrets.
-- **AI calls return 429** → you've hit OpenRouter rate limits / out of credits. Top up at https://openrouter.ai/credits or switch `OPENROUTER_MODEL` to a cheaper one.
-- **PDF OCR returns garbage / empty** → the chosen `OPENROUTER_MODEL` may not support file input well. Try `openai/gpt-4o-mini`, `google/gemini-2.5-flash`, or `anthropic/claude-3.5-sonnet`.
+- **AI calls return 429** → you've hit the free-tier rate limit (20 req/min, ~200/day). Wait a minute, or add $10 of credits to OpenRouter to lift the daily cap to 1000. Never switch to a paid model unless you want to spend money.
+- **PDF OCR returns garbage / empty** → the chosen `OPENROUTER_MODEL` doesn't support PDF input well. Use `google/gemini-2.0-flash-exp:free` (best free option for PDFs) or `qwen/qwen-2.5-vl-72b-instruct:free`.
 - **Auth redirects to wrong URL** → fix Site URL / Redirect URLs in Supabase Auth settings.
 - **CORS errors** → confirm edge functions deployed successfully (`supabase functions list`).
 - **Edge function 401** → make sure the frontend is sending the Supabase JWT in the `Authorization: Bearer <token>` header (the SDK does this automatically when the user is logged in).
