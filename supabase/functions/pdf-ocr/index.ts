@@ -58,39 +58,49 @@ Return only the extracted text with markers embedded.`;
 
     const dataUrl = `data:${mimeType};base64,${pdfBase64}`;
 
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model,
-        messages: [
-          {
-            role: 'user',
-            content: [
-              { type: 'text', text: extractionPrompt },
-              {
-                type: 'file',
-                file: {
-                  filename: 'document.pdf',
-                  file_data: dataUrl,
+    const callOpenRouter = async (engine: 'pdf-text' | 'mistral-ocr') => {
+      return await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: extractionPrompt },
+                {
+                  type: 'file',
+                  file: {
+                    filename: 'document.pdf',
+                    file_data: dataUrl,
+                  },
                 },
-              },
-            ],
-          },
-        ],
-        plugins: [
-          {
-            id: 'file-parser',
-            pdf: { engine: 'mistral-ocr' },
-          },
-        ],
-        max_tokens: 16000,
-        temperature: 0.1,
-      }),
-    });
+              ],
+            },
+          ],
+          plugins: [
+            {
+              id: 'file-parser',
+              pdf: { engine },
+            },
+          ],
+          max_tokens: 16000,
+          temperature: 0.1,
+        }),
+      });
+    };
+
+    // Try free pdf-text engine first; fall back to mistral-ocr for scanned PDFs.
+    let response = await callOpenRouter('pdf-text');
+    if (!response.ok) {
+      const firstErr = await response.text();
+      console.warn('pdf-text engine failed, retrying with mistral-ocr:', firstErr);
+      response = await callOpenRouter('mistral-ocr');
+    }
 
     if (!response.ok) {
       const errorText = await response.text();
