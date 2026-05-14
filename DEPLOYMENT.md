@@ -78,7 +78,7 @@ In the Supabase Dashboard → **Edge Functions → Secrets** (or `supabase secre
 | Secret | Value | Where to get it |
 |---|---|---|
 | `OPENROUTER_API_KEY` | `sk-or-v1-…` | https://openrouter.ai/keys |
-| `OPENROUTER_MODEL` | e.g. `openai/gpt-4o-mini`, `anthropic/claude-3.5-sonnet`, `google/gemini-2.5-flash` | Browse models at https://openrouter.ai/models. Use the full slug. For PDF OCR to work well, pick a model that supports file/PDF input (most major models do via OpenRouter's built-in PDF parser). |
+| `OPENROUTER_MODEL` | **Recommended (100% free):** `google/gemini-2.0-flash-exp:free`. Other free options: `meta-llama/llama-3.2-11b-vision-instruct:free`, `qwen/qwen-2.5-vl-72b-instruct:free`. | Pick any model with the `:free` suffix at https://openrouter.ai/models?max_price=0. Free models support PDF input natively (no paid `mistral-ocr` plugin needed). Free tier = 20 req/min, 200 req/day per account ($10 lifetime credit raises it to 1000/day). |
 | `ADMIN_SECRET_ID` | any string you choose | Used to gate admin signups. Pick a strong random value. |
 
 > **Note:** `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` are **auto-injected** by Supabase into every edge function — you do **not** need to set them manually.
