@@ -14,7 +14,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const apiKey = process.env.OPENROUTER_API_KEY;
-    const model = process.env.OPENROUTER_MODEL || 'openai/gpt-4o-mini';
+    const model = process.env.OPENROUTER_MODEL || 'google/gemini-2.0-flash-exp:free';
     if (!apiKey) return res.status(500).json({ error: 'OPENROUTER_API_KEY not configured on server' });
 
     const { messages, systemPrompt } = req.body ?? {};

@@ -34,7 +34,7 @@ serve(async (req) => {
     }
 
     const apiKey = Deno.env.get('OPENROUTER_API_KEY');
-    const model = Deno.env.get('OPENROUTER_MODEL') || 'openai/gpt-4o-mini';
+    const model = Deno.env.get('OPENROUTER_MODEL') || 'google/gemini-2.0-flash-exp:free';
     if (!apiKey) {
       return new Response(
         JSON.stringify({ error: 'OPENROUTER_API_KEY not configured on server.' }),

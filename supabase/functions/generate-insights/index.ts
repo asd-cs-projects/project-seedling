@@ -300,7 +300,7 @@ serve(async (req) => {
 
   try {
     const apiKey = Deno.env.get('OPENROUTER_API_KEY');
-    const aiModel = Deno.env.get('OPENROUTER_MODEL') || 'openai/gpt-4o-mini';
+    const aiModel = Deno.env.get('OPENROUTER_MODEL') || 'google/gemini-2.0-flash-exp:free';
     if (!apiKey) throw new HttpError(500, 'OPENROUTER_API_KEY not configured');
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');

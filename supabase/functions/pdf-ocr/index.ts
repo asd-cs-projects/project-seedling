@@ -22,7 +22,7 @@ serve(async (req) => {
     }
 
     const apiKey = Deno.env.get('OPENROUTER_API_KEY');
-    const model = Deno.env.get('OPENROUTER_MODEL') || 'openai/gpt-4o-mini';
+    const model = Deno.env.get('OPENROUTER_MODEL') || 'google/gemini-2.0-flash-exp:free';
     if (!apiKey) {
       return new Response(
         JSON.stringify({ error: 'OPENROUTER_API_KEY not configured on server.' }),
@@ -58,54 +58,58 @@ Return only the extracted text with markers embedded.`;
 
     const dataUrl = `data:${mimeType};base64,${pdfBase64}`;
 
-    const callOpenRouter = async (engine: 'pdf-text' | 'mistral-ocr') => {
+    const callOpenRouter = async (engine: 'pdf-text' | 'native') => {
+      const body: Record<string, unknown> = {
+        model,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: extractionPrompt },
+              {
+                type: 'file',
+                file: {
+                  filename: 'document.pdf',
+                  file_data: dataUrl,
+                },
+              },
+            ],
+          },
+        ],
+        max_tokens: 16000,
+        temperature: 0.1,
+      };
+      // 'pdf-text' = OpenRouter's free text-extraction plugin (no model file support needed).
+      // 'native' = let the model itself ingest the PDF (free if you use a free model like
+      // google/gemini-2.0-flash-exp:free which handles PDFs natively). Zero cost either way.
+      if (engine === 'pdf-text') {
+        body.plugins = [{ id: 'file-parser', pdf: { engine: 'pdf-text' } }];
+      }
       return await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          model,
-          messages: [
-            {
-              role: 'user',
-              content: [
-                { type: 'text', text: extractionPrompt },
-                {
-                  type: 'file',
-                  file: {
-                    filename: 'document.pdf',
-                    file_data: dataUrl,
-                  },
-                },
-              ],
-            },
-          ],
-          plugins: [
-            {
-              id: 'file-parser',
-              pdf: { engine },
-            },
-          ],
-          max_tokens: 16000,
-          temperature: 0.1,
-        }),
+        body: JSON.stringify(body),
       });
     };
 
-    // Try free pdf-text engine first; fall back to mistral-ocr for scanned PDFs.
+    // Try the free pdf-text engine first (works for any PDF with a real text layer).
+    // Fallback: hand the PDF straight to the model (free as long as OPENROUTER_MODEL is a free model).
     let response = await callOpenRouter('pdf-text');
     if (!response.ok) {
       const firstErr = await response.text();
-      console.warn('pdf-text engine failed, retrying with mistral-ocr:', firstErr);
-      response = await callOpenRouter('mistral-ocr');
+      console.warn('pdf-text engine failed, falling back to native model parsing:', firstErr);
+      response = await callOpenRouter('native');
     }
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error('OpenRouter API error:', errorText);
-      throw new Error(`OpenRouter API error: ${response.status} - ${errorText}`);
+      throw new Error(
+        `PDF parsing failed. If this is a scanned/image PDF, set OPENROUTER_MODEL to a free vision model like 'google/gemini-2.0-flash-exp:free'. Details: ${response.status} - ${errorText}`
+      );
     }
 
     const data = await response.json();
