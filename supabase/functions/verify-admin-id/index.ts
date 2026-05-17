@@ -6,7 +6,7 @@ const corsHeaders = {
 };
 
 // Admin ID stored securely as environment variable. Fail-closed if missing.
-const ADMIN_ID = Deno.env.get("ADMIN_SECRET_ID");
+const ADMIN_ID = Deno.env.get("ADMIN_SECRETS_ID");
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
