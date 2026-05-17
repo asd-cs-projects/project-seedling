@@ -78,7 +78,7 @@ Return only the extracted text with markers embedded.`;
             ],
           },
         ],
-        max_tokens: 16000,
+        max_tokens: 8000,
         temperature: 0.1,
       };
       // 'pdf-text' = OpenRouter's free text-extraction plugin (no model file support needed).
