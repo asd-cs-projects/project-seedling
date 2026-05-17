@@ -79,23 +79,36 @@ export const PDFUploader = ({ testId, onPDFsChange, onQuestionsCreated }: PDFUpl
     toast({ title: 'Processing', description: 'Extracting questions and images from PDF...' });
 
     try {
-      // Step 1: create a short-lived signed URL and let the edge function (and OpenRouter)
-      // fetch the PDF directly. Avoids the slow download → base64 → giant JSON upload path.
+      // Step 1: OCR Extract with image detection
+      // Bucket is private — download via authenticated storage API instead of public fetch
       const bucketMarker = '/test-files/';
       const idx = pdfUrl.indexOf(bucketMarker);
       if (idx === -1) throw new Error('Invalid PDF URL');
       const storagePath = decodeURIComponent(pdfUrl.substring(idx + bucketMarker.length).split('?')[0]);
 
-      const { data: signed, error: signErr } = await supabase.storage
+      const { data: blob, error: dlError } = await supabase.storage
         .from('test-files')
-        .createSignedUrl(storagePath, 600);
-      if (signErr || !signed?.signedUrl) throw signErr || new Error('Failed to sign PDF URL');
+        .download(storagePath);
+      if (dlError || !blob) throw dlError || new Error('Failed to download PDF');
+
+      if (blob.size === 0) throw new Error('Downloaded PDF is empty');
+
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const result = reader.result as string;
+          const base64Data = result.split(',')[1];
+          resolve(base64Data);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
 
       const { data: ocrData, error: ocrError } = await supabase.functions.invoke('pdf-ocr', {
-        body: {
-          pdfUrl: signed.signedUrl,
+        body: { 
+          pdfBase64: base64,
           mimeType: 'application/pdf',
-          extractImages: true,
+          extractImages: true
         }
       });
 

@@ -12,11 +12,11 @@ serve(async (req) => {
   }
 
   try {
-    const { pdfBase64, pdfUrl, mimeType = 'application/pdf' } = await req.json();
+    const { pdfBase64, mimeType = 'application/pdf' } = await req.json();
 
-    if (!pdfBase64 && !pdfUrl) {
+    if (!pdfBase64) {
       return new Response(
-        JSON.stringify({ error: 'No PDF data provided (need pdfUrl or pdfBase64)' }),
+        JSON.stringify({ error: 'No PDF data provided' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -56,9 +56,7 @@ CRITICAL INSTRUCTIONS:
 
 Return only the extracted text with markers embedded.`;
 
-    // Prefer a direct URL (OpenRouter fetches it server-side, no client upload needed
-    // and no huge JSON payload through the edge function). Falls back to inline base64.
-    const dataUrl = pdfUrl ?? `data:${mimeType};base64,${pdfBase64}`;
+    const dataUrl = `data:${mimeType};base64,${pdfBase64}`;
 
     const callOpenRouter = async (engine: 'pdf-text' | 'native') => {
       const body: Record<string, unknown> = {
@@ -78,7 +76,7 @@ Return only the extracted text with markers embedded.`;
             ],
           },
         ],
-        max_tokens: 8000,
+        max_tokens: 16000,
         temperature: 0.1,
       };
       // 'pdf-text' = OpenRouter's free text-extraction plugin (no model file support needed).
