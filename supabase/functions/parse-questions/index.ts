@@ -88,9 +88,7 @@ Rules:
           ],
           response_format: { type: 'json_object' },
           temperature: 0.2,
-          // Tightened from 32k → 8k; large PDFs of MCQs comfortably fit and lower
-          // max_tokens makes the model return faster (no speculative buffer).
-          max_tokens: 8000,
+          max_tokens: 32000,
         }),
       });
 
