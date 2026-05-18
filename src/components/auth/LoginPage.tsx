@@ -198,10 +198,18 @@ const LoginPage = () => {
             adminId: teacherForm.adminId
           }
         });
-        if (verifyError || !verifyData?.valid) {
+        if (verifyError) {
+          toast({
+            title: "Admin verification failed",
+            description: `${verifyError.message || 'Edge function unreachable'}. Make sure the 'verify-admin-id' function is deployed and ADMIN_SECRET_ID is set on your Supabase project.`,
+            variant: "destructive"
+          });
+          return;
+        }
+        if (!verifyData?.valid) {
           toast({
             title: "Invalid Admin ID",
-            description: "Please contact administrator for valid Admin ID",
+            description: verifyData?.error || "Please contact administrator for valid Admin ID",
             variant: "destructive"
           });
           return;
