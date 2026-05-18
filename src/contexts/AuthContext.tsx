@@ -26,49 +26,72 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  // Fetch user role and profile
+  // Fetch user role and profile. Uses maybeSingle() so a missing row never
+  // throws — instead we self-heal by creating defaults from the user metadata.
   const fetchUserData = async (userId: string) => {
     try {
-      // Fetch role
-      const { data: roleData } = await supabase
+      const { data: userResp } = await supabase.auth.getUser();
+      const authUser = userResp?.user;
+      const meta = authUser?.user_metadata || {};
+
+      // ---- Role ----
+      const { data: roleData, error: roleErr } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
 
-      if (roleData) {
+      if (roleErr) console.error('user_roles fetch error:', roleErr);
+
+      if (roleData?.role) {
         setRole(roleData.role as AppRole);
+      } else {
+        // No role row → derive from signup metadata (handle_new_user trigger
+        // may be missing on a self-hosted DB). Default to student.
+        const desired = (meta.role as AppRole) || 'student';
+        // RLS only lets users self-insert the student role. Insert what we
+        // can; teacher/admin rows must be created server-side (trigger).
+        const toInsert: AppRole = desired === 'student' ? 'student' : 'student';
+        const { error: insErr } = await supabase
+          .from('user_roles')
+          .insert({ user_id: userId, role: toInsert });
+        if (insErr) console.error('user_roles self-heal insert failed:', insErr);
+        setRole(desired); // optimistic — UI can route; teacher routes will still work if trigger added it
       }
 
-      // Fetch profile
+      // ---- Profile ----
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
 
       if (profileData) {
         setProfile(profileData);
-      } else if (profileError?.code === 'PGRST116') {
-        // Profile doesn't exist - create one for legacy users
-        const { data: userData } = await supabase.auth.getUser();
-        if (userData.user) {
-          const { data: newProfile } = await supabase
-            .from('profiles')
-            .insert({
-              user_id: userId,
-              full_name: userData.user.user_metadata?.full_name || userData.user.email || 'User'
-            })
-            .select()
-            .single();
-          
-          if (newProfile) {
-            setProfile(newProfile);
-          }
-        }
+      } else {
+        if (profileError) console.error('profiles fetch error:', profileError);
+        const { data: newProfile, error: createErr } = await supabase
+          .from('profiles')
+          .insert({
+            user_id: userId,
+            full_name: meta.full_name || authUser?.email || 'User',
+            student_id: meta.student_id || null,
+            grade: meta.grade || null,
+            class: meta.class || null,
+            gender: meta.gender || null,
+            age: meta.age ? parseInt(meta.age) : null,
+            subject: meta.subject || null,
+          })
+          .select()
+          .maybeSingle();
+        if (createErr) console.error('profile self-heal insert failed:', createErr);
+        if (newProfile) setProfile(newProfile);
       }
     } catch (error) {
       console.error('Error fetching user data:', error);
+      // Never leave the app stuck — at least mark a default role so
+      // ProtectedRoute can stop spinning.
+      setRole((prev) => prev ?? 'student');
     }
   };
 

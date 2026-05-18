@@ -42,6 +42,20 @@ const ProtectedRoute = ({ children, allowedRole }: ProtectedRouteProps) => {
     }
   }, [user, role, loading, allowedRole, navigate]);
 
+  // Safety: if role hasn't loaded within 5s after we have a user,
+  // stop spinning and send them home so they can retry.
+  const [stalled, setStalled] = useState(false);
+  useEffect(() => {
+    if (!user || role) return;
+    const t = setTimeout(() => setStalled(true), 5000);
+    return () => clearTimeout(t);
+  }, [user, role]);
+
+  if (stalled && user && !role) {
+    navigate("/", { replace: true });
+    return null;
+  }
+
   if (loading || (user && !role)) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
