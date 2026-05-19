@@ -552,7 +552,7 @@ const NewTeacherDashboard = () => {
             </div>
 
             {/* Navigation Bubbles */}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               <div onClick={() => setActiveSection("tests")} className="nav-bubble group cursor-pointer">
                 <FolderOpen className="h-10 w-10 mb-3 text-primary group-hover:scale-110 transition-transform" />
                 <p className="font-semibold">My Tests</p>
