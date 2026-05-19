@@ -100,6 +100,9 @@ export const CreateTestWizard = ({ teacherId, onComplete, onCancel }: CreateTest
     }
 
     const code = generateTestCode(basicInfo.subject);
+    const durationMinutes = basicInfo.duration_minutes && basicInfo.duration_minutes > 0
+      ? basicInfo.duration_minutes
+      : 30;
     
     // Save to Supabase
     const { data, error } = await supabase
@@ -108,7 +111,7 @@ export const CreateTestWizard = ({ teacherId, onComplete, onCancel }: CreateTest
         test_code: code,
         title: basicInfo.title,
         subject: basicInfo.subject,
-        duration_minutes: basicInfo.duration_minutes,
+        duration_minutes: durationMinutes,
         description: basicInfo.description || null,
         target_grade: basicInfo.target_grade || null,
         target_section: basicInfo.target_section || null,
