@@ -5,7 +5,7 @@
 ### Authentication System
 - **No Email Required** - Students and teachers login with ID only
 - **Student Login**: Student ID + Password
-- **Teacher Login**: Teacher ID + Admin Password (`Amb@ssador#Bench!`)
+- **Teacher Login**: Teacher ID + Password (Sign up requires Admin Password)
 - Sign up / Login toggle functionality
 - Proper validation and error handling
 
