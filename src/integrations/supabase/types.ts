@@ -251,6 +251,7 @@ export type Database = {
           is_retake: boolean
           practice_score: number | null
           score: number | null
+          status: string | null
           student_id: string
           test_id: string
           time_spent: number | null
@@ -270,6 +271,7 @@ export type Database = {
           is_retake?: boolean
           practice_score?: number | null
           score?: number | null
+          status?: string | null
           student_id: string
           test_id: string
           time_spent?: number | null
@@ -289,6 +291,7 @@ export type Database = {
           is_retake?: boolean
           practice_score?: number | null
           score?: number | null
+          status?: string | null
           student_id?: string
           test_id?: string
           time_spent?: number | null
