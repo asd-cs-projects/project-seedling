@@ -565,6 +565,12 @@ const NewTeacherDashboard = () => {
                 <p className="text-xs text-muted-foreground mt-1">Individual Student Performance</p>
               </div>
 
+              <div onClick={() => setActiveSection("classes")} className="nav-bubble group cursor-pointer">
+                <School className="h-10 w-10 mb-3 text-primary group-hover:scale-110 transition-transform" />
+                <p className="font-semibold">Classes</p>
+                <p className="text-xs text-muted-foreground mt-1">Per-class tests &amp; summaries</p>
+              </div>
+
               <div onClick={() => setActiveSection("monitoring")} className="nav-bubble group cursor-pointer relative">
                 <Radio className="h-10 w-10 mb-3 text-success group-hover:scale-110 transition-transform" />
                 {activeSessionsCount > 0 && (
