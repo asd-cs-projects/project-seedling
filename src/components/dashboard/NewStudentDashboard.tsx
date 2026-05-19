@@ -14,6 +14,7 @@ import sckoolLogo from "@/assets/sckool-logo.jpeg";
 import { StudentResultDetail } from "@/components/results/StudentResultDetail";
 import { GeminiLoader } from "@/components/ui/gemini-loader";
 import { calculateResultMetrics, getStoredAnswer } from "@/lib/utils";
+import { InfoButton } from "@/components/ui/info-button";
 
 const SUBJECTS = ['All Subjects', 'English', 'Science', 'Mathematics', 'Social Studies'] as const;
 type Subject = typeof SUBJECTS[number];
@@ -568,6 +569,7 @@ const NewStudentDashboard = () => {
             </div>
           </> : renderSection()}
       </div>
+      <InfoButton />
     </div>;
 };
 export default NewStudentDashboard;
