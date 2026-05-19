@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
-import { Upload, Users, TrendingUp, BarChart3, LogOut, Copy, PlusCircle, FolderOpen, ChartLine, ArrowLeft, Trash2, Edit, Eye, User, Radio } from "lucide-react";
+import { Upload, Users, TrendingUp, BarChart3, LogOut, Copy, PlusCircle, FolderOpen, ChartLine, ArrowLeft, Trash2, Edit, Eye, User, Radio, School } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
@@ -13,13 +13,14 @@ import { CreateTestWizard } from "@/components/teacher/CreateTestWizard";
 import { TestEditor } from "@/components/teacher/TestEditor";
 import { TestResultsPage } from "@/components/teacher/TestResultsPage";
 import { StudentDetailPage } from "@/components/teacher/StudentDetailPage";
+import { ClassDetailPage } from "@/components/teacher/ClassDetailPage";
 import { LiveSessionsMonitor } from "@/components/teacher/LiveSessionsMonitor";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import sckoolLogo from "@/assets/sckool-logo.jpeg";
 import { InfoButton } from "@/components/ui/info-button";
 
-type ActiveSection = "home" | "create" | "tests" | "students" | "test-results" | "student-detail" | "monitoring";
+type ActiveSection = "home" | "create" | "tests" | "students" | "classes" | "test-results" | "student-detail" | "monitoring";
 const NewTeacherDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -463,6 +464,8 @@ const NewTeacherDashboard = () => {
           studentName={selectedStudentName}
           onBack={() => setActiveSection("students")}
         />;
+      case "classes":
+        return <ClassDetailPage teacherId={user.id} onBack={() => setActiveSection("home")} />;
       case "monitoring":
         return <LiveSessionsMonitor onBack={() => setActiveSection("home")} />;
       default:
@@ -485,6 +488,7 @@ const NewTeacherDashboard = () => {
                  activeSection === "tests" ? "My Tests" : 
                  activeSection === "test-results" ? "Test Results" :
                  activeSection === "student-detail" ? "Student Details" :
+                 activeSection === "classes" ? "Classes" :
                  activeSection === "monitoring" ? "Live Monitoring" :
                  "Students"}
               </h1>
@@ -548,7 +552,7 @@ const NewTeacherDashboard = () => {
             </div>
 
             {/* Navigation Bubbles */}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               <div onClick={() => setActiveSection("tests")} className="nav-bubble group cursor-pointer">
                 <FolderOpen className="h-10 w-10 mb-3 text-primary group-hover:scale-110 transition-transform" />
                 <p className="font-semibold">My Tests</p>
@@ -559,6 +563,12 @@ const NewTeacherDashboard = () => {
                 <Users className="h-10 w-10 mb-3 text-primary group-hover:scale-110 transition-transform" />
                 <p className="font-semibold">Students</p>
                 <p className="text-xs text-muted-foreground mt-1">Individual Student Performance</p>
+              </div>
+
+              <div onClick={() => setActiveSection("classes")} className="nav-bubble group cursor-pointer">
+                <School className="h-10 w-10 mb-3 text-primary group-hover:scale-110 transition-transform" />
+                <p className="font-semibold">Classes</p>
+                <p className="text-xs text-muted-foreground mt-1">Per-class tests &amp; summaries</p>
               </div>
 
               <div onClick={() => setActiveSection("monitoring")} className="nav-bubble group cursor-pointer relative">
