@@ -385,7 +385,7 @@ export const CreateTestWizard = ({ teacherId, onComplete, onCancel }: CreateTest
                       <SelectValue placeholder="Select grade" />
                     </SelectTrigger>
                     <SelectContent>
-                      {['Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6', 'Grade 7', 'Grade 8', 'Grade 9', 'Grade 10', 'Grade 11', 'Grade 12'].map(g => (
+                      {Array.from({ length: 12 }, (_, i) => String(i + 1)).map(g => (
                         <SelectItem key={g} value={g}>{g}</SelectItem>
                       ))}
                     </SelectContent>
@@ -402,7 +402,7 @@ export const CreateTestWizard = ({ teacherId, onComplete, onCancel }: CreateTest
                       <SelectValue placeholder="Select section" />
                     </SelectTrigger>
                     <SelectContent>
-                      {['Section A', 'Section B', 'Section C', 'Section D'].map(s => (
+                      {Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i)).map(s => (
                         <SelectItem key={s} value={s}>{s}</SelectItem>
                       ))}
                     </SelectContent>
@@ -414,10 +414,22 @@ export const CreateTestWizard = ({ teacherId, onComplete, onCancel }: CreateTest
                   <Input
                     id="duration"
                     type="text"
-                    value={basicInfo.duration_minutes.toString()}
+                    inputMode="numeric"
+                    value={basicInfo.duration_minutes === null ? '' : String(basicInfo.duration_minutes)}
                     onChange={(e) => {
-                      const val = e.target.value.replace(/\D/g, '');
-                      setBasicInfo(prev => ({ ...prev, duration_minutes: parseInt(val) || 0 }));
+                      const raw = e.target.value.replace(/\D/g, '');
+                      setBasicInfo(prev => ({
+                        ...prev,
+                        duration_minutes: raw === '' ? (null as any) : parseInt(raw, 10),
+                      }));
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        const v = basicInfo.duration_minutes;
+                        if (v === null || v === undefined || (v as any) === '' || Number.isNaN(v) || v === 0) {
+                          setBasicInfo(prev => ({ ...prev, duration_minutes: 30 }));
+                        }
+                      }
                     }}
                     placeholder="e.g., 60"
                     className="input-glassy"
@@ -447,17 +459,21 @@ export const CreateTestWizard = ({ teacherId, onComplete, onCancel }: CreateTest
                 {basicInfo.adaptive_mode && (
                   <div className="space-y-2 pt-3 border-t border-primary/15">
                     <Label htmlFor="groups-per-student">Groups per student (X)</Label>
-                    <Input
-                      id="groups-per-student"
-                      type="text"
-                      value={basicInfo.groups_per_student.toString()}
-                      onChange={(e) => {
-                        const val = e.target.value.replace(/\D/g, '');
-                        setBasicInfo(prev => ({ ...prev, groups_per_student: Math.max(1, parseInt(val) || 1) }));
-                      }}
-                      placeholder="e.g., 4"
-                      className="input-glassy max-w-[200px]"
-                    />
+                    <Select
+                      value={String(basicInfo.groups_per_student)}
+                      onValueChange={(v) =>
+                        setBasicInfo(prev => ({ ...prev, groups_per_student: parseInt(v, 10) }))
+                      }
+                    >
+                      <SelectTrigger className="input-glassy max-w-[200px]">
+                        <SelectValue placeholder="Select" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[1, 2, 3, 4, 5].map(n => (
+                          <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <p className="text-xs text-primary/80 bg-primary/10 rounded-lg p-2.5 leading-relaxed">
                       <strong>Tip:</strong> If X = number of groups per student, it is recommended that <strong>Basic</strong> and <strong>Hard</strong> levels have <strong>X</strong> groups and <strong>Easy</strong> and <strong>Medium</strong> levels have <strong>X−1</strong> groups for optimal adaptation.
                     </p>
