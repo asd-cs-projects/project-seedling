@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { GraduationCap, UserCircle } from "lucide-react";
 import sckoolLogo from "@/assets/sckool-logo.jpeg";
+import { InfoButton } from "@/components/ui/info-button";
 const LandingPage = () => {
   const navigate = useNavigate();
   return <div className="min-h-screen bg-gradient-to-br from-background via-accent/20 to-primary/10 flex flex-col items-center justify-center p-6">
@@ -42,6 +43,7 @@ const LandingPage = () => {
       <p className="mt-16 text-sm text-muted-foreground animate-fade-in">
         ASD Benchmark Assessment Platform
       </p>
+      <InfoButton />
     </div>;
 };
 export default LandingPage;
