@@ -20,7 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import sckoolLogo from "@/assets/sckool-logo.jpeg";
 import { InfoButton } from "@/components/ui/info-button";
 
-type ActiveSection = "home" | "create" | "tests" | "students" | "test-results" | "student-detail" | "monitoring";
+type ActiveSection = "home" | "create" | "tests" | "students" | "classes" | "test-results" | "student-detail" | "monitoring";
 const NewTeacherDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
