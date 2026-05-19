@@ -17,6 +17,7 @@ import { LiveSessionsMonitor } from "@/components/teacher/LiveSessionsMonitor";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import sckoolLogo from "@/assets/sckool-logo.jpeg";
+import { InfoButton } from "@/components/ui/info-button";
 
 type ActiveSection = "home" | "create" | "tests" | "students" | "test-results" | "student-detail" | "monitoring";
 const NewTeacherDashboard = () => {
@@ -573,6 +574,7 @@ const NewTeacherDashboard = () => {
             </div>
           </> : renderSection()}
       </div>
+      <InfoButton />
     </div>;
 };
 export default NewTeacherDashboard;
