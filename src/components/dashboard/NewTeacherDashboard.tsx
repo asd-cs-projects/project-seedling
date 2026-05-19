@@ -464,6 +464,8 @@ const NewTeacherDashboard = () => {
           studentName={selectedStudentName}
           onBack={() => setActiveSection("students")}
         />;
+      case "classes":
+        return <ClassDetailPage teacherId={user.id} onBack={() => setActiveSection("home")} />;
       case "monitoring":
         return <LiveSessionsMonitor onBack={() => setActiveSection("home")} />;
       default:
