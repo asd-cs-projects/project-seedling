@@ -13,6 +13,7 @@ import { CreateTestWizard } from "@/components/teacher/CreateTestWizard";
 import { TestEditor } from "@/components/teacher/TestEditor";
 import { TestResultsPage } from "@/components/teacher/TestResultsPage";
 import { StudentDetailPage } from "@/components/teacher/StudentDetailPage";
+import { ClassDetailPage } from "@/components/teacher/ClassDetailPage";
 import { LiveSessionsMonitor } from "@/components/teacher/LiveSessionsMonitor";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
