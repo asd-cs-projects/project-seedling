@@ -9,6 +9,10 @@ import { GraduationCap, UserCircle, ShieldCheck, ArrowLeft, Eye, EyeOff, Loader2
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { toProperCase } from "@/lib/properCase";
+
+const GRADES = Array.from({ length: 12 }, (_, i) => String(i + 1));
+const SECTIONS = Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i));
 
 const PasswordInputField = ({
   id, value, onChange, placeholder, showPassword, onToggleShow,
@@ -110,9 +114,9 @@ const LoginPage = () => {
           return;
         }
         const { error } = await signUp(asdId, studentForm.password, {
-          fullName: studentForm.fullName.trim(),
+          fullName: toProperCase(studentForm.fullName.trim()),
           grade: studentForm.grade.trim(),
-          class: studentForm.class.trim(),
+          class: studentForm.class.trim().toUpperCase(),
           gender: studentForm.gender,
           age: studentForm.age,
           role: "student",
@@ -269,12 +273,22 @@ const LoginPage = () => {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="grade">Grade</Label>
-                    <Input id="grade" placeholder="e.g., 10" value={studentForm.grade} onChange={(e) => setStudentForm((p) => ({ ...p, grade: e.target.value }))} className="input-glassy" disabled={isLoading} />
+                    <Label>Grade</Label>
+                    <Select value={studentForm.grade} onValueChange={(v) => setStudentForm((p) => ({ ...p, grade: v }))} disabled={isLoading}>
+                      <SelectTrigger className="input-glassy"><SelectValue placeholder="Select grade" /></SelectTrigger>
+                      <SelectContent>
+                        {GRADES.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="class">Class</Label>
-                    <Input id="class" placeholder="e.g., A" value={studentForm.class} onChange={(e) => setStudentForm((p) => ({ ...p, class: e.target.value }))} className="input-glassy" disabled={isLoading} />
+                    <Label>Section</Label>
+                    <Select value={studentForm.class} onValueChange={(v) => setStudentForm((p) => ({ ...p, class: v }))} disabled={isLoading}>
+                      <SelectTrigger className="input-glassy"><SelectValue placeholder="Select section" /></SelectTrigger>
+                      <SelectContent>
+                        {SECTIONS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
 
