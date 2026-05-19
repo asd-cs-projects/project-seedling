@@ -488,6 +488,7 @@ const NewTeacherDashboard = () => {
                  activeSection === "tests" ? "My Tests" : 
                  activeSection === "test-results" ? "Test Results" :
                  activeSection === "student-detail" ? "Student Details" :
+                 activeSection === "classes" ? "Classes" :
                  activeSection === "monitoring" ? "Live Monitoring" :
                  "Students"}
               </h1>
