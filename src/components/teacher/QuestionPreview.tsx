@@ -20,7 +20,7 @@ export const QuestionPreview = ({ question, questionNumber }: QuestionPreviewPro
               {question.passage_title}
             </h4>
           )}
-          <div className="passage-text text-foreground/90">
+          <div className="passage-text text-foreground/90 whitespace-pre-wrap">
             {question.passage_text}
           </div>
         </div>
