@@ -955,7 +955,7 @@ const AssessmentInterface = () => {
                 </div>
               )}
               {currentQuestion.passage_text && (
-                <div className="passage-text">
+                <div className="passage-text whitespace-pre-wrap">
                   {currentQuestion.passage_text}
                 </div>
               )}
