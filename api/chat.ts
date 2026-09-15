@@ -14,7 +14,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const apiKey = process.env.GEMINI_API_KEY;
-    const model = process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
+    const model = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
     if (!apiKey) return res.status(500).json({ error: 'GEMINI_API_KEY not configured on server' });
 
     const { messages, systemPrompt } = req.body ?? {};
