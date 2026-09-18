@@ -122,7 +122,8 @@ export const TestEditor = ({ testId, onClose }: TestEditorProps) => {
         .from('questions')
         .select('*')
         .eq('test_id', testId)
-        .order('order_index', { ascending: true });
+        .order('order_index', { ascending: true })
+        .order('created_at', { ascending: true });
       
       if (questionsError) throw questionsError;
       
@@ -264,7 +265,7 @@ export const TestEditor = ({ testId, onClose }: TestEditorProps) => {
       options: ['', '', '', ''],
       correct_answer: 'A',
       marks: 1,
-      order_index: questions.length,
+      order_index: questions.reduce((m, q) => Math.max(m, q.order_index ?? 0), -1) + 1,
     };
 
     try {
@@ -396,7 +397,16 @@ export const TestEditor = ({ testId, onClose }: TestEditorProps) => {
     if (extractedQuestions.length === 0) return;
 
     try {
-      const orderOffset = questions.length;
+      // Continue after the highest existing order_index so successive uploads
+      // stay in upload order instead of interleaving.
+      const { data: lastQ } = await supabase
+        .from('questions')
+        .select('order_index')
+        .eq('test_id', testId)
+        .order('order_index', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const orderOffset = ((lastQ?.order_index ?? -1) as number) + 1;
 
       const newQuestions = extractedQuestions.map((q: any, idx: number) => ({
         test_id: testId,

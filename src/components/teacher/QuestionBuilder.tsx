@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
+import { MediaDisplay } from '@/components/ui/media-display';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 import { useQuestions, Question } from '@/hooks/useQuestions';
@@ -65,7 +66,8 @@ export const QuestionBuilder = ({ testId, onQuestionsChange }: QuestionBuilderPr
       .from('questions')
       .select('*')
       .eq('test_id', testId)
-      .order('order_index');
+      .order('order_index')
+      .order('created_at', { ascending: true });
     
     if (error) {
       console.error('Error loading questions:', error);
@@ -535,6 +537,14 @@ export const QuestionBuilder = ({ testId, onQuestionsChange }: QuestionBuilderPr
                   <span className="text-sm text-success">✓ File attached</span>
                 )}
               </div>
+              {currentQuestion.media_url && (
+                <MediaDisplay
+                  url={currentQuestion.media_url}
+                  type={currentQuestion.media_type || 'image'}
+                  alt="Question media"
+                  size="md"
+                />
+              )}
             </div>
 
             {/* Add Question Button */}

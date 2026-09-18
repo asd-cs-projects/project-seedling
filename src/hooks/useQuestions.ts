@@ -43,7 +43,7 @@ export const useQuestions = (testId: string) => {
 
   const fetchQuestions = useCallback((difficulty?: string) =>
     run('fetch questions', async () => {
-      let query = supabase.from('questions').select('*').eq('test_id', testId).order('order_index', { ascending: true });
+      let query = supabase.from('questions').select('*').eq('test_id', testId).order('order_index', { ascending: true }).order('created_at', { ascending: true });
       if (difficulty) query = query.eq('difficulty', difficulty);
       const { data, error } = await query;
       if (error) throw error;

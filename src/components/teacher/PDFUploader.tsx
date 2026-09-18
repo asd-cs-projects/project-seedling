@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { MediaDisplay } from '@/components/ui/media-display';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useFileUpload } from '@/hooks/useFileUpload';
 import { useToast } from '@/hooks/use-toast';
@@ -207,13 +208,17 @@ export const PDFUploader = ({ testId, onPDFsChange, onQuestionsCreated }: PDFUpl
         }
       }
 
-      // Get count of existing questions for this test
-      const { count: existingCount } = await supabase
+      // Continue numbering after the highest existing order_index so a second
+      // upload never collides with (and jumbles into) the first upload's range.
+      const { data: lastQ } = await supabase
         .from('questions')
-        .select('*', { count: 'exact', head: true })
-        .eq('test_id', testId);
+        .select('order_index')
+        .eq('test_id', testId)
+        .order('order_index', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-      let orderOffset = existingCount || 0;
+      let orderOffset = ((lastQ?.order_index ?? -1) as number) + 1;
 
       // Count questions by difficulty
       const difficultyCounts: Record<string, number> = { practice: 0, basic: 0, easy: 0, medium: 0, hard: 0 };
@@ -560,6 +565,11 @@ export const PDFUploader = ({ testId, onPDFsChange, onQuestionsCreated }: PDFUpl
                               <Loader2 className="h-3 w-3 animate-spin" />
                             ) : (passageMedia[passageKey] ? 'Replace' : 'Upload')}
                           </Button>
+                        </div>
+                      )}
+                      {passageKey && passageMedia[passageKey] && (
+                        <div className="mb-3">
+                          <MediaDisplay url={passageMedia[passageKey]} type="image" alt="Module material" size="md" />
                         </div>
                       )}
                       <div className="space-y-2">

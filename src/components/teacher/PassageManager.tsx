@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Plus, Save, X, Upload, Loader2 } from 'lucide-react';
 import { Passage } from '@/hooks/usePassages';
+import { MediaDisplay } from '@/components/ui/media-display';
 
 interface PassageManagerProps {
   testId: string;
@@ -174,15 +175,18 @@ export const PassageManager = ({ testId, passages, onPassageCreated, onClose }: 
             className="hidden"
           />
           {form.media_url ? (
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground truncate flex-1">{form.media_url.split('/').pop()}</span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setForm(prev => ({ ...prev, media_url: '' }))}
-              >
-                Remove
-              </Button>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground truncate flex-1">{form.media_url.split('/').pop()}</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setForm(prev => ({ ...prev, media_url: '' }))}
+                >
+                  Remove
+                </Button>
+              </div>
+              <MediaDisplay url={form.media_url} type="image" alt="Material image" size="md" />
             </div>
           ) : (
             <Button
